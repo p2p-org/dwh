@@ -1,0 +1,91 @@
+package common
+
+import (
+	"fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/mock"
+	sdknft "github.com/cosmos/cosmos-sdk/x/nft/types"
+	"github.com/dgamingfoundation/dwh/types"
+	mpnft "github.com/dgamingfoundation/marketplace/x/marketplace/types"
+	"github.com/google/uuid"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
+)
+
+var (
+	UserName   = "dgaming"
+	Password   = "dgaming"
+	DBName     = "marketplace"
+	ConnString = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", UserName, Password, DBName)
+)
+
+func GetDB() (*gorm.DB, error) {
+	return gorm.Open("postgres", ConnString)
+}
+
+func CreateTables(db *gorm.DB) *gorm.DB {
+	db = db.DropTableIfExists(&types.NFT{})
+	return db.CreateTable(&types.NFT{})
+}
+
+func PopulateMockNFTs(numNFTs int64) []*types.NFT {
+	var (
+		nfts []*types.NFT
+		idx  int64
+	)
+
+	for idx = 0; idx < numNFTs; idx++ {
+		_, owner, _, _ := mock.CreateGenAccounts(1, sdk.Coins{
+			sdk.NewCoin("mpcoin", sdk.NewInt(idx*100)),
+		})
+		var (
+			name        = fmt.Sprintf("name_%d", idx)
+			description = fmt.Sprintf("description_%d", idx)
+			image       = fmt.Sprintf("http://image.com/%d", idx)
+		)
+		nft := &mpnft.NFT{
+			BaseNFT: sdknft.NewBaseNFT(
+				uuid.New().String(),
+				owner[0],
+				name,
+				description,
+				image,
+				fmt.Sprintf(`{
+    "title": "Asset Metadata",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": %s,
+        },
+        "description": {
+            "type": "string",
+            "description": %s,
+        },
+        "image": {
+            "type": "string",
+            "description": %s,
+        }
+    }
+}`, name, description, image),
+			),
+		}
+		if idx%3 == 0 {
+			// Each third NFT is on sale.
+			nft.OnSale = true
+			nft.Price = sdk.Coins{
+				sdk.NewCoin("mpcoin", sdk.NewInt(idx*10)),
+			}
+			_, sellerBeneficiary, _, _ := mock.CreateGenAccounts(1, sdk.Coins{
+				sdk.NewCoin("mpcoin", sdk.NewInt(idx*100)),
+			})
+			nft.SellerBeneficiary = sellerBeneficiary[0]
+		}
+		log.Infof("Populating nft:\n%v\n\n", nft.String())
+		nfts = append(nfts, types.NewNFTFromMarketplaceNFT(nft))
+	}
+
+	return nfts
+}
