@@ -11,6 +11,8 @@ require (
 	github.com/lib/pq v1.1.1
 	github.com/prometheus/common v0.2.0
 	github.com/sirupsen/logrus v1.4.2
+	github.com/syndtr/goleveldb v1.0.0
+	github.com/tendermint/tendermint v0.31.5
 )
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5

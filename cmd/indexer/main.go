@@ -17,7 +17,7 @@ import (
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/indexer"
 	app "github.com/dgamingfoundation/marketplace"
-	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
+	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -27,8 +27,13 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 )
 
+const (
+	indexerStatePath = "./indexer.state"
+)
+
 func main() {
 	log.SetLevel(log.DebugLevel)
+	var ctx = context.Background()
 
 	db, err := common.GetDB()
 	if err != nil {
@@ -41,11 +46,19 @@ func main() {
 	}()
 
 	cliCtx, txDecoder := getEnv()
-	idxr := indexer.NewIndexer(cliCtx, txDecoder, db, map[string]indexer.MsgHandler{
-		types.RouterKey: indexer.NewMarketplaceHandler(),
-	})
+	idxrCfg := &indexer.Config{
+		StatePath: indexerStatePath,
+	}
+	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
+		map[string]indexer.MsgHandler{
+			mptypes.RouterKey: indexer.NewMarketplaceHandler(),
+		},
+	)
+	if err != nil {
+		log.Fatalf("failed to create new indexer: %v", err)
+	}
 
-	if err := idxr.Run(context.Background()); err != nil {
+	if err := idxr.Start(); err != nil {
 		log.Fatalf("indexer failed: %v", err)
 	}
 }
