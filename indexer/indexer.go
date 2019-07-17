@@ -135,7 +135,9 @@ func (m *Indexer) processTxs(txs types.Txs) error {
 			}
 
 			if err := handler(msg); err != nil {
+				// TODO: store failed messages for later examination/processing.
 				log.Errorf("failed to process message %+v", msg)
+				continue
 			}
 
 			if err := m.updateCursor(m.cursor.Height, txID, msgID); err != nil {
