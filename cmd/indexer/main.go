@@ -1,22 +1,21 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path"
-	"strings"
-	"time"
-
-	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/lcd"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/indexer"
 	app "github.com/dgamingfoundation/marketplace"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -42,56 +41,17 @@ func main() {
 	}()
 
 	cliCtx, txDecoder := getEnv()
-	rpcClient, err := cliCtx.GetNode()
-	if err != nil {
-		log.Fatalf("failed to get rpc client: %v", err)
-	}
+	idxr := indexer.NewIndexer(cliCtx, txDecoder, db, map[string]indexer.MsgHandler{
+		types.RouterKey: indexer.NewMarketplaceHandler(),
+	})
 
-	var height int64 = 1
-	for {
-		block, err := rpcClient.Block(&height)
-		if err != nil {
-			// If we query for a block that does not exist yet, we do not want to
-			// log the error.
-			// TODO: check if the error is named (strings comparison is fuck ugly).
-			if !strings.Contains(err.Error(), "Height") {
-				log.Errorf("failed to get block at height %d: %v", height, err)
-			}
-			time.Sleep(time.Second)
-			continue
-		}
-
-		log.Infof("retrieved block #%d, block ID %s, number of transactions: %d",
-			height, block.BlockMeta.BlockID, block.BlockMeta.Header.NumTxs)
-
-		for txID, txBytes := range block.Block.Data.Txs {
-			log.Infof("processing transaction #%d", txID)
-
-			tx, err := txDecoder(txBytes)
-			if err != nil {
-				log.Errorf("failed to decode transaction bytes: %v", err)
-			}
-
-			for _, msg := range tx.GetMsgs() {
-				switch value := msg.(type) {
-				case types.MsgMintNFT:
-					log.Infof("got message of type MsgMintNFT: %+v", value)
-				case types.MsgSellNFT:
-					log.Infof("got message of type MsgSellNFT: %+v", value)
-				case types.MsgBuyNFT:
-					log.Infof("got message of type MsgBuyNFT: %+v", value)
-				case types.MsgTransferNFT:
-					log.Infof("got message of type MsgTransferNFT: %+v", value)
-				}
-			}
-		}
-
-		height++
+	if err := idxr.Run(context.Background()); err != nil {
+		log.Fatalf("indexer failed: %v", err)
 	}
 }
 
 // TODO: use the simpler context that is developed by @pr0n00gler.
-func getEnv() (context.CLIContext, sdk.TxDecoder) {
+func getEnv() (cliContext.CLIContext, sdk.TxDecoder) {
 	viper.Set("home", "~/.mpcli")
 	viper.Set("chain-id", "mpchain")
 
@@ -128,7 +88,7 @@ func getEnv() (context.CLIContext, sdk.TxDecoder) {
 		client.LineBreak,
 	)
 
-	return context.NewCLIContext().WithCodec(cdc), auth.DefaultTxDecoder(cdc)
+	return cliContext.NewCLIContext().WithCodec(cdc), auth.DefaultTxDecoder(cdc)
 }
 
 func registerRoutes(rs *lcd.RestServer) {

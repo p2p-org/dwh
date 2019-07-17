@@ -9,6 +9,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/jinzhu/gorm v1.9.10
 	github.com/lib/pq v1.1.1
+	github.com/prometheus/common v0.2.0
 	github.com/sirupsen/logrus v1.4.2
 )
 
