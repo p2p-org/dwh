@@ -1,9 +1,31 @@
 package main
 
 import (
+	"os"
+	"path"
+	"strings"
+	"time"
+
+	"github.com/cosmos/cosmos-sdk/x/auth"
+
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/client/lcd"
+	"github.com/cosmos/cosmos-sdk/client/rpc"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	bankcmd "github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/dgamingfoundation/dwh/common"
+	app "github.com/dgamingfoundation/marketplace"
+	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
+	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
+	"github.com/tendermint/tendermint/libs/cli"
 )
 
 func main() {
@@ -19,6 +41,171 @@ func main() {
 		}
 	}()
 
+	cliCtx, txDecoder := getEnv()
+	rpcClient, err := cliCtx.GetNode()
+	if err != nil {
+		log.Fatalf("failed to get rpc client: %v", err)
+	}
+
+	var height int64 = 1
+	for {
+		block, err := rpcClient.Block(&height)
+		if err != nil {
+			// If we query for a block that does not exist yet, we do not want to
+			// log the error.
+			// TODO: check if the error is named (strings comparison is fuck ugly).
+			if !strings.Contains(err.Error(), "Height") {
+				log.Errorf("failed to get block at height %d: %v", height, err)
+			}
+			time.Sleep(time.Second)
+			continue
+		}
+
+		log.Infof("retrieved block #%d, block ID %s, number of transactions: %d",
+			height, block.BlockMeta.BlockID, block.BlockMeta.Header.NumTxs)
+
+		for txID, txBytes := range block.Block.Data.Txs {
+			log.Infof("processing transaction #%d", txID)
+
+			tx, err := txDecoder(txBytes)
+			if err != nil {
+				log.Errorf("failed to decode transaction bytes: %v", err)
+			}
+
+			for _, msg := range tx.GetMsgs() {
+				switch value := msg.(type) {
+				case types.MsgMintNFT:
+					log.Infof("got message of type MsgMintNFT: %+v", value)
+				case types.MsgSellNFT:
+					log.Infof("got message of type MsgSellNFT: %+v", value)
+				case types.MsgBuyNFT:
+					log.Infof("got message of type MsgBuyNFT: %+v", value)
+				case types.MsgTransferNFT:
+					log.Infof("got message of type MsgTransferNFT: %+v", value)
+				}
+			}
+		}
+
+		height++
+	}
+}
+
+// TODO: use the simpler context that is developed by @pr0n00gler.
+func getEnv() (context.CLIContext, sdk.TxDecoder) {
+	viper.Set("home", "~/.mpcli")
+	viper.Set("chain-id", "mpchain")
+
+	cdc := app.MakeCodec()
+
+	// Read in the configuration file for the sdk
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
+	config.Seal()
+
+	rootCmd := &cobra.Command{
+		Use:   "mpcli",
+		Short: "marketplace Client",
+	}
+
+	// Add --chain-id to persistent flags and mark it required
+	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
+		return initConfig(rootCmd)
+	}
+
+	// Construct Root Command
+	rootCmd.AddCommand(
+		rpc.StatusCommand(),
+		client.ConfigCmd(app.DefaultCLIHome),
+		queryCmd(cdc),
+		txCmd(cdc),
+		client.LineBreak,
+		lcd.ServeCommand(cdc, registerRoutes),
+		client.LineBreak,
+		keys.Commands(),
+		client.LineBreak,
+	)
+
+	return context.NewCLIContext().WithCodec(cdc), auth.DefaultTxDecoder(cdc)
+}
+
+func registerRoutes(rs *lcd.RestServer) {
+	client.RegisterRoutes(rs.CliCtx, rs.Mux)
+	app.ModuleBasics.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
+}
+
+func queryCmd(cdc *amino.Codec) *cobra.Command {
+	queryCmd := &cobra.Command{
+		Use:     "query",
+		Aliases: []string{"q"},
+		Short:   "Querying subcommands",
+	}
+
+	queryCmd.AddCommand(
+		authcmd.GetAccountCmd(cdc),
+		client.LineBreak,
+		rpc.ValidatorCommand(cdc),
+		rpc.BlockCommand(),
+		authcmd.QueryTxsByTagsCmd(cdc),
+		authcmd.QueryTxCmd(cdc),
+		client.LineBreak,
+	)
+
+	// add modules' query commands
+	app.ModuleBasics.AddQueryCommands(queryCmd, cdc)
+
+	return queryCmd
+}
+
+func txCmd(cdc *amino.Codec) *cobra.Command {
+	txCmd := &cobra.Command{
+		Use:   "tx",
+		Short: "Transactions subcommands",
+	}
+
+	txCmd.AddCommand(
+		bankcmd.SendTxCmd(cdc),
+		client.LineBreak,
+		authcmd.GetSignCommand(cdc),
+		authcmd.GetMultiSignCommand(cdc),
+		client.LineBreak,
+		authcmd.GetBroadcastCommand(cdc),
+		authcmd.GetEncodeCommand(cdc),
+		client.LineBreak,
+	)
+
+	// add modules' tx commands
+	app.ModuleBasics.AddTxCommands(txCmd, cdc)
+
+	return txCmd
+}
+
+func initConfig(cmd *cobra.Command) error {
+	home, err := cmd.PersistentFlags().GetString(cli.HomeFlag)
+	if err != nil {
+		return err
+	}
+
+	cfgFile := path.Join(home, "config", "config.toml")
+	if _, err := os.Stat(cfgFile); err == nil {
+		viper.SetConfigFile(cfgFile)
+
+		if err := viper.ReadInConfig(); err != nil {
+			return err
+		}
+	}
+	if err := viper.BindPFlag(client.FlagChainID, cmd.PersistentFlags().Lookup(client.FlagChainID)); err != nil {
+		return err
+	}
+	if err := viper.BindPFlag(cli.EncodingFlag, cmd.PersistentFlags().Lookup(cli.EncodingFlag)); err != nil {
+		return err
+	}
+	return viper.BindPFlag(cli.OutputFlag, cmd.PersistentFlags().Lookup(cli.OutputFlag))
+}
+
+func populateTestData(db *gorm.DB) {
 	db = common.CreateTables(db)
 	nfts := common.PopulateMockNFTs(15)
 	for _, nft := range nfts {
