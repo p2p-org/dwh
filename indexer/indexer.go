@@ -159,6 +159,7 @@ func (m *Indexer) Stop() {
 	if err := m.stateDB.Close(); err != nil {
 		log.Errorf("failed to close state database connection: %v", err)
 	}
+	m.cancel()
 }
 
 func (m *Indexer) updateCursor(height int64, txID, msgID int) error {
