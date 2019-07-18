@@ -6,7 +6,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/mock"
 	sdknft "github.com/cosmos/cosmos-sdk/x/nft/types"
-	"github.com/dgamingfoundation/dwh/types"
 	mpnft "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -25,14 +24,20 @@ func GetDB() (*gorm.DB, error) {
 	return gorm.Open("postgres", ConnString)
 }
 
-func CreateTables(db *gorm.DB) *gorm.DB {
-	db = db.DropTableIfExists(&types.NFT{})
-	return db.CreateTable(&types.NFT{})
+func CreateTables(db *gorm.DB, reset bool) *gorm.DB {
+	if reset {
+		db = db.DropTableIfExists(&NFT{})
+		db = db.DropTableIfExists(&Message{})
+	}
+	db = db.CreateTable(&NFT{})
+	db = db.CreateTable(&Message{})
+
+	return db
 }
 
-func PopulateMockNFTs(numNFTs int64) []*types.NFT {
+func PopulateMockNFTs(numNFTs int64) []*NFT {
 	var (
-		nfts []*types.NFT
+		nfts []*NFT
 		idx  int64
 	)
 
@@ -84,7 +89,7 @@ func PopulateMockNFTs(numNFTs int64) []*types.NFT {
 			nft.SellerBeneficiary = sellerBeneficiary[0]
 		}
 		log.Infof("Populating nft:\n%v\n\n", nft.String())
-		nfts = append(nfts, types.NewNFTFromMarketplaceNFT(nft))
+		nfts = append(nfts, NewNFTFromMarketplaceNFT(nft))
 	}
 
 	return nfts

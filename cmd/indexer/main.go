@@ -44,6 +44,7 @@ func main() {
 			log.Errorf("failed to close database connection: %v", err)
 		}
 	}()
+	db = common.CreateTables(db, true)
 
 	cliCtx, txDecoder := getEnv()
 	idxrCfg := &indexer.Config{
@@ -179,7 +180,6 @@ func initConfig(cmd *cobra.Command) error {
 }
 
 func populateTestData(db *gorm.DB) {
-	db = common.CreateTables(db)
 	nfts := common.PopulateMockNFTs(15)
 	for _, nft := range nfts {
 		db = db.Create(nft)

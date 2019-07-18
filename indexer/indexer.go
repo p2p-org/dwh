@@ -2,12 +2,14 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	cliCtx "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/dgamingfoundation/dwh/common"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -16,6 +18,10 @@ import (
 
 const (
 	cursorKey = "cursor"
+)
+
+var (
+	errCursor = errors.New("fatal: failed to update indexer cursor, state is inconsistent")
 )
 
 type Indexer struct {
@@ -53,7 +59,6 @@ func NewIndexer(
 		handlers:  handlers,
 		cursor:    &cursor{},
 	}
-
 	cursorExists, err := stateDB.Has([]byte(cursorKey), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for indexer cursor: %v", err)
@@ -68,7 +73,7 @@ func NewIndexer(
 		}
 	} else {
 		if err := idxr.updateCursor(1, 0, 0); err != nil {
-			return nil, fmt.Errorf("failed to update indexer cursor, state is incosistent: %v", err)
+			return nil, errCursor
 		}
 	}
 
@@ -124,29 +129,65 @@ func (m *Indexer) processTxs(txs types.Txs) error {
 		}
 
 		for msgID, msg := range tx.GetMsgs() {
-			if msgID < m.cursor.MsgID {
-				log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
-				continue
-			}
-			handler, ok := m.handlers[msg.Route()]
-			if !ok {
-				log.Errorf("unknown message route %s (type %s), skipping", msg.Route(), msg.Type())
-				continue
-			}
-
-			if err := handler(msg); err != nil {
-				// TODO: store failed messages for later examination/processing.
-				log.Errorf("failed to process message %+v", msg)
-				continue
-			}
-
-			if err := m.updateCursor(m.cursor.Height, txID, msgID); err != nil {
-				return fmt.Errorf("failed to update indexer cursor, state is incosistent: %v", err)
+			if err := m.processMsg(txBytes, txID, msgID, msg); err != nil {
+				if err == errCursor {
+					// This is a fatal error, indexer should be stopped.
+					return err
+				}
+				log.Errorf("failed to process message: %v", err)
 			}
 		}
 	}
 	if err := m.updateCursor(m.cursor.Height+1, 0, 0); err != nil {
-		return fmt.Errorf("failed to update indexer cursor, state is incosistent: %v", err)
+		// This is a fatal error, indexer should be stopped.
+		return errCursor
+	}
+
+	return nil
+}
+
+func (m *Indexer) processMsg(txBytes types.Tx, txID, msgID int, msg sdk.Msg) error {
+	if msgID < m.cursor.MsgID {
+		log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
+		return nil
+	}
+
+	// We store general information about a message regardless of whether we processed it
+	// successfully or not; in case of failure we store additional information about the
+	// error.
+	var (
+		failed bool
+		errMsg string
+	)
+	defer func() {
+		m.db = m.db.Create(
+			common.NewMessage(
+				m.cursor.Height,
+				txBytes.String(),
+				msg.Route(),
+				msg.Type(),
+				fmt.Sprintf("%s", msg.GetSignBytes()),
+				msg.GetSigners(),
+				failed,
+				errMsg,
+			),
+		)
+	}()
+
+	handler, ok := m.handlers[msg.Route()]
+	if !ok {
+		failed, errMsg = true, fmt.Sprintf(
+			"unknown message route %s (type %s), skipping", msg.Route(), msg.Type())
+		return errors.New(errMsg)
+	}
+
+	if err := handler(msg); err != nil {
+		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
+		return errors.New(errMsg)
+	}
+
+	if err := m.updateCursor(m.cursor.Height, txID, msgID); err != nil {
+		return errCursor
 	}
 
 	return nil

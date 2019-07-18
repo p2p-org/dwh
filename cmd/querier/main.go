@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dgamingfoundation/dwh/types"
-
 	"github.com/dgamingfoundation/dwh/common"
 	log "github.com/sirupsen/logrus"
 
@@ -77,7 +75,7 @@ func main() {
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				var nft types.NFT
+				var nft common.NFT
 				id, ok := p.Args["id"].(string)
 				if !ok {
 					return nil, errors.New("invalid uuid string")
@@ -96,7 +94,7 @@ func main() {
 			Type:        graphql.NewList(nftType),
 			Description: "Get a list of all NFTs",
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				var nfts []*types.NFT
+				var nfts []*common.NFT
 				db.Find(&nfts)
 
 				return nfts, nil
