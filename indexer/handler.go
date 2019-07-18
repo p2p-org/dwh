@@ -35,11 +35,15 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-		nft, err := m.getNFT(value.TokenID)
-		if err != nil {
-			return fmt.Errorf("failed to getNFT: %v", err)
-		}
-		m.db.Create(nft)
+
+		m.db.Create(&common.NFT{
+			Owner:       value.Owner.String(),
+			TokenID:     value.TokenID,
+			Name:        value.Name,
+			Description: value.Description,
+			Image:       value.Image,
+			TokenURI:    value.TokenURI,
+		})
 	case mptypes.MsgSellNFT:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
 	case mptypes.MsgBuyNFT:
@@ -55,7 +59,7 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
 	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not find token with UUID %s: %v", tokenID, err)
+		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
 	}
 
 	var nft mptypes.NFT

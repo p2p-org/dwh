@@ -11,7 +11,7 @@ import (
 type NFT struct {
 	gorm.Model
 	Owner             string
-	UUID              string
+	TokenID           string
 	Name              string
 	Description       string
 	Image             string
@@ -23,7 +23,7 @@ type NFT struct {
 
 func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 	return &NFT{
-		UUID:              nft.GetID(),
+		TokenID:           nft.GetID(),
 		Owner:             nft.GetOwner().String(),
 		Name:              nft.GetName(),
 		Description:       nft.GetDescription(),

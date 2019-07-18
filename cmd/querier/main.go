@@ -82,7 +82,7 @@ func main() {
 				}
 
 				db.Where("id = ?", id).First(&nft)
-				if len(nft.UUID) == 0 {
+				if len(nft.TokenID) == 0 {
 					return nil, fmt.Errorf("failed to find NFT with ID %s", id)
 				}
 
