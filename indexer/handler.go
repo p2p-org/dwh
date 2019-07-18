@@ -35,17 +35,11 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-		res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", value.UUID), nil)
+		nft, err := m.getNFT(value.TokenID)
 		if err != nil {
-			return fmt.Errorf("could not find token with UUID %s: %v", value.UUID, err)
+			return fmt.Errorf("failed to getNFT: %v", err)
 		}
-
-		var nft mptypes.NFT
-		if err := m.cdc.UnmarshalJSON(res, &nft); err != nil {
-			return fmt.Errorf("failed to unmarshal NFT: %v", err)
-		}
-
-		m.db.Create(common.NewNFTFromMarketplaceNFT(&nft))
+		m.db.Create(nft)
 	case mptypes.MsgSellNFT:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
 	case mptypes.MsgBuyNFT:
@@ -56,4 +50,18 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	}
 
 	return nil
+}
+
+func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
+	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not find token with UUID %s: %v", tokenID, err)
+	}
+
+	var nft mptypes.NFT
+	if err := m.cdc.UnmarshalJSON(res, &nft); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal NFT: %v", err)
+	}
+
+	return common.NewNFTFromMarketplaceNFT(&nft), nil
 }

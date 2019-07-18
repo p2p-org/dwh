@@ -54,6 +54,8 @@ github.com/dgamingfoundation/marketplace v0.0.0-20190716124432-f7e460c5ef8e h1:o
 github.com/dgamingfoundation/marketplace v0.0.0-20190716124432-f7e460c5ef8e/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
 github.com/dgamingfoundation/marketplace v0.0.0-20190718155147-4d87827958e8 h1:T2oUbTeIoWkwxu5yaxCP1+zdWkGmT4+ihrtkG9faFGk=
 github.com/dgamingfoundation/marketplace v0.0.0-20190718155147-4d87827958e8/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
+github.com/dgamingfoundation/marketplace v0.0.0-20190718161646-2c12517dba1a h1:JodgaG8a3TOMk1AxQoPCmWUN6C69UPfO170Skn2AYnI=
+github.com/dgamingfoundation/marketplace v0.0.0-20190718161646-2c12517dba1a/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
 github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5mFgVsvEsIPBvNs=
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
