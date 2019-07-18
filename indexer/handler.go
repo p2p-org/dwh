@@ -35,7 +35,6 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-
 		m.db.Create(&common.NFT{
 			Owner:       value.Owner.String(),
 			TokenID:     value.TokenID,
@@ -46,6 +45,11 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 		})
 	case mptypes.MsgSellNFT:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
+		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+			"OnSale":            true,
+			"Price":             value.Price.String(),
+			"SellerBeneficiary": value.Beneficiary.String(),
+		})
 	case mptypes.MsgBuyNFT:
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
 	case mptypes.MsgTransferNFT:
