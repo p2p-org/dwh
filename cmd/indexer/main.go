@@ -52,7 +52,7 @@ func main() {
 	}
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 		map[string]indexer.MsgHandler{
-			mptypes.RouterKey: indexer.NewMarketplaceHandler(),
+			mptypes.RouterKey: indexer.NewMarketplaceHandler(db, cliCtx),
 		},
 	)
 	if err != nil {

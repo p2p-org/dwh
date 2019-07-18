@@ -103,7 +103,6 @@ func (m *Indexer) Start() error {
 				time.Sleep(time.Second)
 				continue
 			}
-
 			log.Infof("retrieved block #%d, block ID %s, transactions: %d",
 				m.cursor.Height, block.BlockMeta.BlockID, block.BlockMeta.Header.NumTxs)
 
@@ -181,7 +180,7 @@ func (m *Indexer) processMsg(txBytes types.Tx, txID, msgID int, msg sdk.Msg) err
 		return errors.New(errMsg)
 	}
 
-	if err := handler(msg); err != nil {
+	if err := handler.Handle(msg); err != nil {
 		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
 		return errors.New(errMsg)
 	}
