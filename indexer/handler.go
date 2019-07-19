@@ -52,8 +52,16 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 		})
 	case mptypes.MsgBuyNFT:
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
+		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+			"OnSale": false,
+			"Owner":  value.Buyer.String(),
+		})
 	case mptypes.MsgTransferNFT:
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
+		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+			"OnSale": false,
+			"Owner":  value.Recipient.String(),
+		})
 		// Also: MsgDeleteNFT (not implemented yet).
 	}
 

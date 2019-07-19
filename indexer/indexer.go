@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -106,20 +107,26 @@ func (m *Indexer) Start() error {
 			log.Infof("retrieved block #%d, block ID %s, transactions: %d",
 				m.cursor.Height, block.BlockMeta.BlockID, block.BlockMeta.Header.NumTxs)
 
-			if err := m.processTxs(block.Block.Data.Txs); err != nil {
+			if err := m.processTxs(rpcClient, block.Block.Data.Txs); err != nil {
 				return fmt.Errorf("failed to processTxs: %v", err)
 			}
 		}
 	}
 }
 
-func (m *Indexer) processTxs(txs types.Txs) error {
+func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 	for txID, txBytes := range txs {
 		if txID < m.cursor.TxID {
 			log.Debugf("old transaction (%d < %d), skipping", txID, m.cursor.TxID)
 			continue
 		}
 		log.Infof("processing transaction #%d", txID)
+
+		res, err := rpcClient.Tx(txBytes.Hash(), true)
+		if err != nil || sdk.CodeType(res.TxResult.Code) == sdk.CodeUnknownRequest {
+			log.Debugf("transaction %s failed (code %v), skipping", txBytes.String(), res.TxResult.Code)
+			continue
+		}
 
 		tx, err := m.txDecoder(txBytes)
 		if err != nil {
