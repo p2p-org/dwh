@@ -3,9 +3,9 @@ package indexer
 import "encoding/json"
 
 type cursor struct {
-	Height int64
-	TxID   int
-	MsgID  int
+	Height  int64
+	TxIndex uint32
+	MsgID   int
 }
 
 func (m *cursor) Marshal() []byte {

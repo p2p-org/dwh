@@ -115,19 +115,25 @@ func (m *Indexer) Start() error {
 }
 
 func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
-	for txID, txBytes := range txs {
-		if txID < m.cursor.TxID {
-			log.Debugf("old transaction (%d < %d), skipping", txID, m.cursor.TxID)
-			continue
-		}
-		log.Infof("processing transaction #%d", txID)
-
-		res, err := rpcClient.Tx(txBytes.Hash(), true)
-		if err != nil || sdk.CodeType(res.TxResult.Code) == sdk.CodeUnknownRequest {
-			log.Debugf("transaction %s failed (code %v), skipping", txBytes.String(), res.TxResult.Code)
+	for _, txBytes := range txs {
+		txRes, err := rpcClient.Tx(txBytes.Hash(), true)
+		if err != nil || sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
+			log.Debugf("transaction %s failed (code %v), skipping", txBytes.String(), txRes.TxResult.Code)
 			continue
 		}
 
+		if txRes.Index < m.cursor.TxIndex {
+			log.Debugf("old transaction (%d < %d), skipping", txRes, m.cursor.TxIndex)
+			continue
+		}
+		log.Infof("processing transaction #%d at height %d", txRes.Index, txRes.Height)
+
+		var dbTx = common.NewTx(txRes)
+		m.db = m.db.Create(dbTx).Scan(dbTx)
+		if m.db.Error != nil {
+			log.Errorf("failed to store transaction: %v", err)
+			continue
+		}
 		tx, err := m.txDecoder(txBytes)
 		if err != nil {
 			log.Errorf("failed to decode transaction bytes: %v", err)
@@ -135,7 +141,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		}
 
 		for msgID, msg := range tx.GetMsgs() {
-			if err := m.processMsg(txBytes, txID, msgID, msg); err != nil {
+			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg); err != nil {
 				if err == errCursor {
 					// This is a fatal error, indexer should be stopped.
 					return err
@@ -152,7 +158,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 	return nil
 }
 
-func (m *Indexer) processMsg(txBytes types.Tx, txID, msgID int, msg sdk.Msg) error {
+func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) error {
 	if msgID < m.cursor.MsgID {
 		log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
 		return nil
@@ -168,14 +174,13 @@ func (m *Indexer) processMsg(txBytes types.Tx, txID, msgID int, msg sdk.Msg) err
 	defer func() {
 		m.db = m.db.Create(
 			common.NewMessage(
-				m.cursor.Height,
-				txBytes.String(),
 				msg.Route(),
 				msg.Type(),
 				fmt.Sprintf("%s", msg.GetSignBytes()),
 				msg.GetSigners(),
 				failed,
 				errMsg,
+				txID,
 			),
 		)
 	}()
@@ -192,7 +197,7 @@ func (m *Indexer) processMsg(txBytes types.Tx, txID, msgID int, msg sdk.Msg) err
 		return errors.New(errMsg)
 	}
 
-	if err := m.updateCursor(m.cursor.Height, txID, msgID); err != nil {
+	if err := m.updateCursor(m.cursor.Height, txIndex, msgID); err != nil {
 		return errCursor
 	}
 
@@ -209,7 +214,7 @@ func (m *Indexer) Stop() {
 	m.cancel()
 }
 
-func (m *Indexer) updateCursor(height int64, txID, msgID int) error {
-	m.cursor.Height, m.cursor.TxID, m.cursor.MsgID = height, txID, msgID
+func (m *Indexer) updateCursor(height int64, txIndex uint32, msgID int) error {
+	m.cursor.Height, m.cursor.TxIndex, m.cursor.MsgID = height, txIndex, msgID
 	return m.stateDB.Put([]byte(cursorKey), m.cursor.Marshal(), nil)
 }
