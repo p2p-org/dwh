@@ -53,11 +53,14 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 				acc.GetCoins(),
 				nil,
 			)
-			m.db.Create(&owner)
+			m.db = m.db.Create(&owner)
+			if m.db.Error != nil {
+				return fmt.Errorf("failed to add user for address %s: %v", owner.Address, m.db.Error)
+			}
 		}
 
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-		m.db.Create(&common.NFT{
+		m.db = m.db.Create(&common.NFT{
 			OwnerAddress: value.Owner.String(),
 			TokenID:      value.TokenID,
 			Name:         value.Name,
@@ -65,25 +68,37 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 			Image:        value.Image,
 			TokenURI:     value.TokenURI,
 		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create nft: %v", m.db.Error)
+		}
 	case mptypes.MsgSellNFT:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
-		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+		m.db = m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":            true,
 			"Price":             value.Price.String(),
 			"SellerBeneficiary": value.Beneficiary.String(),
 		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgSellNFT): %v", m.db.Error)
+		}
 	case mptypes.MsgBuyNFT:
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
-		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+		m.db = m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":       false,
 			"OwnerAddress": value.Buyer.String(),
 		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", m.db.Error)
+		}
 	case mptypes.MsgTransferNFT:
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
-		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+		m.db = m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":       false,
 			"OwnerAddress": value.Recipient.String(),
 		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", m.db.Error)
+		}
 		// Also: MsgDeleteNFT (not implemented yet).
 	}
 

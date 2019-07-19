@@ -183,6 +183,9 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) 
 				txID,
 			),
 		)
+		if m.db.Error != nil {
+			log.Errorf("failed to add auto migrate: %v", m.db.Error)
+		}
 	}()
 
 	handler, ok := m.handlers[msg.Route()]
