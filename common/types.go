@@ -10,7 +10,7 @@ import (
 
 type NFT struct {
 	gorm.Model
-	Owner             string
+	OwnerAddress      string
 	TokenID           string
 	Name              string
 	Description       string
@@ -24,7 +24,7 @@ type NFT struct {
 func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 	return &NFT{
 		TokenID:           nft.GetID(),
-		Owner:             nft.GetOwner().String(),
+		OwnerAddress:      nft.GetOwner().String(),
 		Name:              nft.GetName(),
 		Description:       nft.GetDescription(),
 		Image:             nft.GetImage(),
@@ -71,5 +71,22 @@ func NewMessage(
 		Signers:   strings.Join(strSigners, ", "),
 		Failed:    failed,
 		Error:     error,
+	}
+}
+
+type User struct {
+	gorm.Model
+	Name    string
+	Address string `gorm:"unique;not null"`
+	Balance string
+	Tokens  []NFT `gorm:"ForeignKey:OwnerAddress"`
+}
+
+func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, tokens []*NFT) *User {
+	return &User{
+		Name:    name,
+		Address: addr.String(),
+		Balance: balance.String(),
+		Tokens:  tokens,
 	}
 }

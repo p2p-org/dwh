@@ -5,6 +5,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -34,14 +36,34 @@ func NewMarketplaceHandler(db *gorm.DB, cliCtx client.CLIContext) MsgHandler {
 func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
+		var (
+			ownerAddr = value.Owner.String()
+			owner     = &common.User{}
+		)
+		m.db.Where("Address = ?", ownerAddr).First(&owner)
+		if len(owner.Address) == 0 {
+			// Create a new user.
+			acc, err := m.getAccount(value.Owner)
+			if err != nil {
+				return fmt.Errorf("failed to find owner with addr %s: %v", ownerAddr, err)
+			}
+			owner = common.NewUser(
+				"",
+				acc.GetAddress(),
+				acc.GetCoins(),
+				nil,
+			)
+			m.db.Create(&owner)
+		}
+
 		log.Infof("got message of type MsgMintNFT: %+v", value)
 		m.db.Create(&common.NFT{
-			Owner:       value.Owner.String(),
-			TokenID:     value.TokenID,
-			Name:        value.Name,
-			Description: value.Description,
-			Image:       value.Image,
-			TokenURI:    value.TokenURI,
+			OwnerAddress: value.Owner.String(),
+			TokenID:      value.TokenID,
+			Name:         value.Name,
+			Description:  value.Description,
+			Image:        value.Image,
+			TokenURI:     value.TokenURI,
 		})
 	case mptypes.MsgSellNFT:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
@@ -53,14 +75,14 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	case mptypes.MsgBuyNFT:
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
 		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
-			"OnSale": false,
-			"Owner":  value.Buyer.String(),
+			"OnSale":       false,
+			"OwnerAddress": value.Buyer.String(),
 		})
 	case mptypes.MsgTransferNFT:
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
 		m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
-			"OnSale": false,
-			"Owner":  value.Recipient.String(),
+			"OnSale":       false,
+			"OwnerAddress": value.Recipient.String(),
 		})
 		// Also: MsgDeleteNFT (not implemented yet).
 	}
@@ -80,4 +102,13 @@ func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
 	}
 
 	return common.NewNFTFromMarketplaceNFT(&nft), nil
+}
+
+func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {
+	accGetter := authtypes.NewAccountRetriever(m.cliCtx)
+	if err := accGetter.EnsureExists(addr); err != nil {
+		return nil, err
+	}
+
+	return accGetter.GetAccount(addr)
 }

@@ -28,9 +28,15 @@ func CreateTables(db *gorm.DB, reset bool) *gorm.DB {
 	if reset {
 		db = db.DropTableIfExists(&NFT{})
 		db = db.DropTableIfExists(&Message{})
+		db = db.DropTableIfExists(&User{})
+
+		db = db.CreateTable(&NFT{})
+		db = db.CreateTable(&Message{})
+		db = db.CreateTable(&User{})
+		db = db.AutoMigrate(&NFT{}, &Message{}, &User{})
+		db = db.Model(&NFT{}).AddForeignKey(
+			"owner_address", "users(address)", "CASCADE", "CASCADE")
 	}
-	db = db.CreateTable(&NFT{})
-	db = db.CreateTable(&Message{})
 
 	return db
 }
