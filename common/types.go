@@ -12,7 +12,7 @@ import (
 type NFT struct {
 	gorm.Model
 	OwnerAddress      string
-	TokenID           string
+	TokenID           string `gorm:"unique;not null"`
 	Name              string
 	Description       string
 	Image             string
@@ -55,10 +55,10 @@ func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, tokens []NFT) 
 
 type Tx struct {
 	gorm.Model
-	Hash      string
-	Height    int64
-	Index     uint32
-	Code      uint32
+	Hash      string `gorm:"not null"`
+	Height    int64  `gorm:"not null"`
+	Index     uint32 `gorm:"not null"`
+	Code      uint32 `gorm:"not null"`
 	Data      []byte
 	Log       string
 	Info      string
