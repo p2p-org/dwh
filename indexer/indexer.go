@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	cliCtx "github.com/cosmos/cosmos-sdk/client/context"
@@ -26,6 +27,7 @@ var (
 )
 
 type Indexer struct {
+	mu        sync.Mutex
 	ctx       context.Context    // Global context for Indexer.
 	cancel    context.CancelFunc // Used to stop main processing loop.
 	cliCtx    cliCtx.CLIContext  // Cosmos CLIContext, used to talk to node.
@@ -51,6 +53,7 @@ func NewIndexer(
 	}
 
 	idxr := &Indexer{
+		mu:        sync.Mutex{},
 		ctx:       ctx,
 		cancel:    cancel,
 		cliCtx:    cliCtx,
@@ -115,6 +118,9 @@ func (m *Indexer) Start() error {
 }
 
 func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	for _, txBytes := range txs {
 		txRes, err := rpcClient.Tx(txBytes.Hash(), true)
 		if err != nil || sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
@@ -208,6 +214,9 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) 
 }
 
 func (m *Indexer) Stop() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if err := m.db.Close(); err != nil {
 		log.Errorf("failed to close database connection: %v", err)
 	}

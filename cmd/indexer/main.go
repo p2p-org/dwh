@@ -25,6 +25,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/cli"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -62,8 +63,20 @@ func main() {
 		log.Fatalf("failed to create new indexer: %v", err)
 	}
 
-	if err := idxr.Start(); err != nil {
-		log.Fatalf("indexer failed: %v", err)
+	wg, ctx := errgroup.WithContext(ctx)
+	wg.Go(func() error {
+		err := common.WaitInterrupted(ctx)
+		idxr.Stop()
+		return err
+	})
+	wg.Go(func() error {
+		log.Info("starting indexer")
+		defer log.Info("stopping indexer")
+		return idxr.Start()
+	})
+
+	if err := wg.Wait(); err != nil {
+		log.Fatalf("indexer stopped: %v", err)
 	}
 }
 
