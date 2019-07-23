@@ -123,11 +123,14 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 
 	for _, txBytes := range txs {
 		txRes, err := rpcClient.Tx(txBytes.Hash(), true)
-		if err != nil || sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
-			log.Debugf("transaction %s failed (code %v), skipping", txBytes.String(), txRes.TxResult.Code)
+		if err != nil {
+			log.Debugf("failed to get transaction %s: %v", txBytes.String(), err)
 			continue
 		}
-
+		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
+			log.Debugf("transaction %s failed (code %d), skipping", txBytes.String(), txRes.TxResult.Code)
+			continue
+		}
 		if txRes.Index < m.cursor.TxIndex {
 			log.Debugf("old transaction (%d < %d), skipping", txRes, m.cursor.TxIndex)
 			continue
