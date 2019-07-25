@@ -1,8 +1,15 @@
-#/bin/bash
-
 USER = "dgaming"
 PASSWORD = "dgaming"
 DB = "marketplace"
+
+DB_HOST = "localhost"
+DB_PORT = "5432"
+
+OS := $(shell uname -s | tr A-Z a-z)
+
+ifeq ($(OS),darwin)
+	DB_HOST := "host.docker.internal"
+endif
 
 install: go.sum
 		@go install ./cmd/indexer
@@ -20,7 +27,7 @@ stop-hasura:
 
 start-hasura:	stop-hasura
 	@echo "Starting container on http://localhost:8080..."
-	@docker run -d -p 8080:8080 \
-			-e HASURA_GRAPHQL_DATABASE_URL=postgres://$(USER):$(PASSWORD)@host.docker.internal:5432/$(DB) \
+	docker run -d -p 8080:8080 \
+			-e HASURA_GRAPHQL_DATABASE_URL=postgres://$(USER):$(PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB) \
 			-e HASURA_GRAPHQL_ENABLE_CONSOLE=true \
 			hasura/graphql-engine:latest
