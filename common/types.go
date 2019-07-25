@@ -36,12 +36,36 @@ func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 	}
 }
 
+type FungibleToken struct {
+	gorm.Model
+	OwnerAddress   string
+	Denom          string `gorm:"unique;not null"`
+	EmissionAmount int64
+}
+
+func NewFungibleTokenFromMarketplace(ft *types.FungibleToken) *FungibleToken {
+	return &FungibleToken{
+		OwnerAddress:   ft.Creator.String(),
+		Denom:          ft.Denom,
+		EmissionAmount: ft.EmissionAmount,
+	}
+}
+
+type FungibleTokenTranfers struct {
+	gorm.Model
+	SenderAddress    string
+	RecipientAddress string
+	Denom            string
+	Amount           int64
+}
+
 type User struct {
 	gorm.Model
-	Name    string
-	Address string `gorm:"unique;not null"`
-	Balance string
-	Tokens  []NFT `gorm:"ForeignKey:OwnerAddress"`
+	Name           string
+	Address        string `gorm:"unique;not null"`
+	Balance        string
+	Tokens         []NFT           `gorm:"ForeignKey:OwnerAddress"`
+	FungibleTokens []FungibleToken `gorm:"ForeignKey:OwnerAddress"`
 }
 
 func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, tokens []NFT) *User {

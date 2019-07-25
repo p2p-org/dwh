@@ -33,32 +33,35 @@ func NewMarketplaceHandler(db *gorm.DB, cliCtx client.CLIContext) MsgHandler {
 	}
 }
 
+func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*common.User, error) {
+	user := &common.User{}
+	m.db.Where("Address = ?", accAddress.String()).First(&user)
+	if len(user.Address) == 0 {
+		// Create a new user.
+		acc, err := m.getAccount(accAddress)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
+		}
+		user = common.NewUser(
+			"",
+			acc.GetAddress(),
+			acc.GetCoins(),
+			nil,
+		)
+		m.db = m.db.Create(&user)
+		if m.db.Error != nil {
+			return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, m.db.Error)
+		}
+	}
+	return user, nil
+}
+
 func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
-		var (
-			ownerAddr = value.Owner.String()
-			owner     = &common.User{}
-		)
-		m.db.Where("Address = ?", ownerAddr).First(&owner)
-		if len(owner.Address) == 0 {
-			// Create a new user.
-			acc, err := m.getAccount(value.Owner)
-			if err != nil {
-				return fmt.Errorf("failed to find owner with addr %s: %v", ownerAddr, err)
-			}
-			owner = common.NewUser(
-				"",
-				acc.GetAddress(),
-				acc.GetCoins(),
-				nil,
-			)
-			m.db = m.db.Create(&owner)
-			if m.db.Error != nil {
-				return fmt.Errorf("failed to add user for address %s: %v", owner.Address, m.db.Error)
-			}
+		if _, err := m.findOrCreateUser(value.Owner); err != nil {
+			return err
 		}
-
 		log.Infof("got message of type MsgMintNFT: %+v", value)
 		m.db = m.db.Create(&common.NFT{
 			OwnerAddress: value.Owner.String(),
@@ -71,7 +74,7 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 		if m.db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", m.db.Error)
 		}
-	case mptypes.MsgSellNFT:
+	case mptypes.MsgPutNFTOnMarket:
 		log.Infof("got message of type MsgSellNFT: %+v", value)
 		m.db = m.db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":            true,
@@ -100,6 +103,40 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", m.db.Error)
 		}
 		// Also: MsgDeleteNFT (not implemented yet).
+	case mptypes.MsgCreateFungibleToken:
+		log.Infof("got message of type MsgCreateFungibleToken: %+v", value)
+		if _, err := m.findOrCreateUser(value.Creator); err != nil {
+			return err
+		}
+		m.db = m.db.Create(&common.FungibleToken{
+			OwnerAddress:   value.Creator.String(),
+			Denom:          value.Denom,
+			EmissionAmount: value.Amount,
+		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create nft: %v", m.db.Error)
+		}
+	case mptypes.MsgTransferFungibleTokens:
+		log.Infof("got message of type MsgTransferFungibleTokens: %+v", value)
+		var (
+			sender, recipient *common.User
+			err               error
+		)
+		if sender, err = m.findOrCreateUser(value.Owner); err != nil {
+			return err
+		}
+		if recipient, err = m.findOrCreateUser(value.Recipient); err != nil {
+			return err
+		}
+		m.db = m.db.Create(&common.FungibleTokenTranfers{
+			SenderAddress:    sender.Address,
+			RecipientAddress: recipient.Address,
+			Denom:            value.Denom,
+			Amount:           value.Amount,
+		})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to transfer fungible token: %v", m.db.Error)
+		}
 	}
 
 	return nil
