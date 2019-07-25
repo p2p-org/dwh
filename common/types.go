@@ -9,9 +9,11 @@ import (
 	core_types "github.com/tendermint/tendermint/rpc/core/types"
 )
 
+// TODO: add normal types for fields in models (varchar, etc.). Issue #19 in the marketplace may be useful
+
 type NFT struct {
 	gorm.Model
-	OwnerAddress      string
+	OwnerAddress      string `gorm:"type:varchar(45)"`
 	TokenID           string `gorm:"unique;not null"`
 	Name              string
 	Description       string
@@ -38,7 +40,7 @@ func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 
 type FungibleToken struct {
 	gorm.Model
-	OwnerAddress   string
+	OwnerAddress   string `gorm:"type:varchar(45)"`
 	Denom          string `gorm:"unique;not null"`
 	EmissionAmount int64
 }
@@ -53,16 +55,16 @@ func NewFungibleTokenFromMarketplace(ft *types.FungibleToken) *FungibleToken {
 
 type FungibleTokenTranfers struct {
 	gorm.Model
-	SenderAddress    string
-	RecipientAddress string
-	Denom            string
+	SenderAddress    string `gorm:"type:varchar(45)"`
+	RecipientAddress string `gorm:"type:varchar(45)"`
+	Denom            string `gorm:"type:varchar(16)"`
 	Amount           int64
 }
 
 type User struct {
 	gorm.Model
 	Name           string
-	Address        string `gorm:"unique;not null"`
+	Address        string `gorm:"type:varchar(45);unique;not null"`
 	Balance        string
 	Tokens         []NFT           `gorm:"ForeignKey:OwnerAddress"`
 	FungibleTokens []FungibleToken `gorm:"ForeignKey:OwnerAddress"`
