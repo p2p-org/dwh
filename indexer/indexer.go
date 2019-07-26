@@ -100,6 +100,62 @@ func NewIndexer(
 	return idxr, nil
 }
 
+func (m *Indexer) Setup(reset bool) error {
+	if m.db == nil {
+		return errors.New("can not set up indexer, db connection is not initialized")
+	}
+
+	if err := m.setupIndexerTables(reset); err != nil {
+		return fmt.Errorf("failed to setup Indexer tables: %v", err)
+	}
+
+	// Do handler-specific setup.
+	var err error
+	for routerKey, handler := range m.handlers {
+		log.Printf("setting up module %s", routerKey)
+		if reset {
+			if m.db, err = handler.Reset(m.db); err != nil {
+				log.Errorf("failed to reset module %s: %v", routerKey, err)
+				continue
+			}
+		}
+		if m.db, err = handler.Setup(m.db); err != nil {
+			log.Errorf("failed to set up module %s: %v", routerKey, err)
+		}
+	}
+
+	return nil
+}
+
+func (m *Indexer) setupIndexerTables(reset bool) error {
+	// Setup global Indexer tables.
+	if reset {
+		m.db = m.db.DropTableIfExists(&common.Message{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to drop table messages: %v", m.db.Error)
+		}
+		m.db = m.db.DropTableIfExists(&common.Tx{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to drop table txes: %v", m.db.Error)
+		}
+	}
+	m.db = m.db.CreateTable(&common.Tx{})
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+	}
+	m.db = m.db.CreateTable(&common.Message{})
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+	}
+	m.db = m.db.Model(&common.Message{}).AddForeignKey(
+		"tx_id", "txes(id)", "CASCADE", "CASCADE")
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to add foreign key (messages): %v", m.db.Error)
+	}
+
+	return nil
+}
+
 func (m *Indexer) Start() error {
 	rpcClient, err := m.cliCtx.GetNode()
 	if err != nil {
@@ -220,7 +276,7 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) 
 		return errors.New(errMsg)
 	}
 
-	if err := handler.Handle(msg); err != nil {
+	if err := handler.Handle(m.db, msg); err != nil {
 		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
 		return errors.New(errMsg)
 	}

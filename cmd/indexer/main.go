@@ -56,10 +56,13 @@ func main() {
 		StatePath: indexerStatePath,
 	}
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
-		indexer.WithHandler(handlers.NewMarketplaceHandler(db, cliCtx)),
+		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)
 	if err != nil {
 		log.Fatalf("failed to create new indexer: %v", err)
+	}
+	if err := idxr.Setup(true); err != nil {
+		log.Fatalf("failed to setup Indexer: %v", err)
 	}
 
 	wg, ctx := errgroup.WithContext(ctx)
