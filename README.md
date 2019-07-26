@@ -31,7 +31,7 @@ make start-hasura
 The command will start a docker container with Hasura on http://localhost:8080
 
 
-## Example of GraphQL query
+## Example of simple GraphQL query
 
 Query:
 ```
@@ -57,6 +57,43 @@ Response:
           }
         ],
         "address": "cosmos1600upc35vevdd9p4jtzzq68w5p78e0sv86l200"
+      }
+    ]
+  }
+}
+```
+
+#Example of GraphQL query with gte operator
+
+Query:
+
+```
+{
+  users(where: {_or: {id: {_gte: 1}, address: {_eq: "cosmos16l2zcjlu4knx8f372wrmjwajxvfwhc3saa0zsw"}}}) {
+    nfts {
+      token_id
+    }
+    id
+    address
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "users": [
+      {
+        "nfts": [],
+        "id": 1,
+        "address": "cosmos18dmtutv6eq3vcaqjupp3gmpy6fmn87s9cszg62"
+      },
+      {
+        "nfts": [],
+        "id": 2,
+        "address": "cosmos16l2zcjlu4knx8f372wrmjwajxvfwhc3saa0zsw"
       }
     ]
   }
