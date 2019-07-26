@@ -57,16 +57,20 @@ type User struct {
 	Name           string
 	Address        string `gorm:"type:varchar(45);unique;not null"`
 	Balance        string
+	AccountNumber  uint64
+	SequenceNumber uint64
 	Tokens         []NFT           `gorm:"ForeignKey:OwnerAddress"`
 	FungibleTokens []FungibleToken `gorm:"ForeignKey:OwnerAddress"`
 }
 
-func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, tokens []NFT) *User {
+func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, accountNumber, sequenceNumber uint64, tokens []NFT) *User {
 	return &User{
-		Name:    name,
-		Address: addr.String(),
-		Balance: balance.String(),
-		Tokens:  tokens,
+		Name:           name,
+		Address:        addr.String(),
+		Balance:        balance.String(),
+		AccountNumber:  accountNumber,
+		SequenceNumber: sequenceNumber,
+		Tokens:         tokens,
 	}
 }
 

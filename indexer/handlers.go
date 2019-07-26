@@ -46,6 +46,8 @@ func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*commo
 			"",
 			acc.GetAddress(),
 			acc.GetCoins(),
+			acc.GetAccountNumber(),
+			acc.GetSequence(),
 			nil,
 		)
 		m.db = m.db.Create(&user)
