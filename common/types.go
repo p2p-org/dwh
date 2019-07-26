@@ -40,9 +40,10 @@ func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 
 type FungibleToken struct {
 	gorm.Model
-	OwnerAddress   string `gorm:"type:varchar(45)"`
-	Denom          string `gorm:"unique;not null"`
-	EmissionAmount int64
+	OwnerAddress           string `gorm:"type:varchar(45)"`
+	Denom                  string `gorm:"unique;not null"`
+	EmissionAmount         int64
+	FungibleTokenTransfers []FungibleTokenTransfer `gorm:"ForeignKey:FungibleTokenID"`
 }
 
 func NewFungibleTokenFromMarketplace(ft *types.FungibleToken) *FungibleToken {
@@ -53,11 +54,11 @@ func NewFungibleTokenFromMarketplace(ft *types.FungibleToken) *FungibleToken {
 	}
 }
 
-type FungibleTokenTranfers struct {
+type FungibleTokenTransfer struct {
 	gorm.Model
 	SenderAddress    string `gorm:"type:varchar(45)"`
 	RecipientAddress string `gorm:"type:varchar(45)"`
-	Denom            string `gorm:"type:varchar(16)"`
+	FungibleTokenID  int64
 	Amount           int64
 }
 

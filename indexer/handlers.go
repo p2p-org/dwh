@@ -119,6 +119,7 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	case mptypes.MsgTransferFungibleTokens:
 		log.Infof("got message of type MsgTransferFungibleTokens: %+v", value)
 		var (
+			ft                common.FungibleToken
 			sender, recipient *common.User
 			err               error
 		)
@@ -128,10 +129,13 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 		if recipient, err = m.findOrCreateUser(value.Recipient); err != nil {
 			return err
 		}
-		m.db = m.db.Create(&common.FungibleTokenTranfers{
+		m.db.Where("denom = ?", value.Denom).First(&ft)
+		if ft.ID == 0 {
+			return fmt.Errorf("failed to transfer fungible token: %v", m.db.Error)
+		}
+		m.db.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
 			SenderAddress:    sender.Address,
 			RecipientAddress: recipient.Address,
-			Denom:            value.Denom,
 			Amount:           value.Amount,
 		})
 		if m.db.Error != nil {
