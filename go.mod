@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/cosmos/cosmos-sdk v0.0.0-20190625145210-5fb86c661ea1
-	github.com/dgamingfoundation/marketplace v0.0.0-20190718161646-2c12517dba1a
+	github.com/dgamingfoundation/marketplace v0.0.0-20190723150646-fe2fd52c8909
 	github.com/google/uuid v1.1.1
 	github.com/jinzhu/gorm v1.9.10
 	github.com/kr/pretty v0.1.0 // indirect

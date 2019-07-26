@@ -52,6 +52,8 @@ github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3 h1:tkum0XDgf
 github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3/go.mod h1:zAg7JM8CkOJ43xKXIj7eRO9kmWm/TW578qo+oDO6tuM=
 github.com/dgamingfoundation/marketplace v0.0.0-20190718161646-2c12517dba1a h1:JodgaG8a3TOMk1AxQoPCmWUN6C69UPfO170Skn2AYnI=
 github.com/dgamingfoundation/marketplace v0.0.0-20190718161646-2c12517dba1a/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
+github.com/dgamingfoundation/marketplace v0.0.0-20190723150646-fe2fd52c8909 h1:1lNb2z6EhxnOjjsNPzdcKF3iFj7TvDcH5UXLXau9HlE=
+github.com/dgamingfoundation/marketplace v0.0.0-20190723150646-fe2fd52c8909/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
 github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5mFgVsvEsIPBvNs=
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
