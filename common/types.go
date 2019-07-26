@@ -6,10 +6,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
-	core_types "github.com/tendermint/tendermint/rpc/core/types"
+	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
 )
-
-// TODO: add normal types for fields in models (varchar, etc.). Issue #19 in the marketplace may be useful
 
 type NFT struct {
 	gorm.Model
@@ -44,14 +42,6 @@ type FungibleToken struct {
 	Denom                  string `gorm:"unique;not null"`
 	EmissionAmount         int64
 	FungibleTokenTransfers []FungibleTokenTransfer `gorm:"ForeignKey:FungibleTokenID"`
-}
-
-func NewFungibleTokenFromMarketplace(ft *types.FungibleToken) *FungibleToken {
-	return &FungibleToken{
-		OwnerAddress:   ft.Creator.String(),
-		Denom:          ft.Denom,
-		EmissionAmount: ft.EmissionAmount,
-	}
 }
 
 type FungibleTokenTransfer struct {
@@ -94,7 +84,7 @@ type Tx struct {
 	Messages  []Message `gorm:"ForeignKey:TxIndex"`
 }
 
-func NewTx(tx *core_types.ResultTx) *Tx {
+func NewTx(tx *coreTypes.ResultTx) *Tx {
 	return &Tx{
 		Hash:      tx.Hash.String(),
 		Height:    tx.Height,
