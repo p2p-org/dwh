@@ -46,10 +46,6 @@ func main() {
 			log.Errorf("failed to close database connection: %v", err)
 		}
 	}()
-	db, err = common.InitDB(db, true)
-	if err != nil {
-		log.Fatalf("failed to InitDB: %v", err)
-	}
 
 	cliCtx, txDecoder := getEnv()
 	idxrCfg := &indexer.Config{
