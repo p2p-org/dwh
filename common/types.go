@@ -6,12 +6,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
-	core_types "github.com/tendermint/tendermint/rpc/core/types"
+	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 type NFT struct {
 	gorm.Model
-	OwnerAddress      string
+	OwnerAddress      string `gorm:"type:varchar(45)"`
 	TokenID           string `gorm:"unique;not null"`
 	Name              string
 	Description       string
@@ -36,12 +36,29 @@ func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
 	}
 }
 
+type FungibleToken struct {
+	gorm.Model
+	OwnerAddress           string `gorm:"type:varchar(45)"`
+	Denom                  string `gorm:"unique;not null"`
+	EmissionAmount         int64
+	FungibleTokenTransfers []FungibleTokenTransfer `gorm:"ForeignKey:FungibleTokenID"`
+}
+
+type FungibleTokenTransfer struct {
+	gorm.Model
+	SenderAddress    string `gorm:"type:varchar(45)"`
+	RecipientAddress string `gorm:"type:varchar(45)"`
+	FungibleTokenID  int64
+	Amount           int64
+}
+
 type User struct {
 	gorm.Model
-	Name    string
-	Address string `gorm:"unique;not null"`
-	Balance string
-	Tokens  []NFT `gorm:"ForeignKey:OwnerAddress"`
+	Name           string
+	Address        string `gorm:"type:varchar(45);unique;not null"`
+	Balance        string
+	Tokens         []NFT           `gorm:"ForeignKey:OwnerAddress"`
+	FungibleTokens []FungibleToken `gorm:"ForeignKey:OwnerAddress"`
 }
 
 func NewUser(name string, addr sdk.AccAddress, balance sdk.Coins, tokens []NFT) *User {
@@ -67,7 +84,7 @@ type Tx struct {
 	Messages  []Message `gorm:"ForeignKey:TxIndex"`
 }
 
-func NewTx(tx *core_types.ResultTx) *Tx {
+func NewTx(tx *coreTypes.ResultTx) *Tx {
 	return &Tx{
 		Hash:      tx.Hash.String(),
 		Height:    tx.Height,
