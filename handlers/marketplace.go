@@ -1,4 +1,4 @@
-package indexer
+package handlers
 
 import (
 	"fmt"
@@ -14,10 +14,6 @@ import (
 	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
 )
-
-type MsgHandler interface {
-	Handle(msg sdk.Msg) error
-}
 
 type MarketplaceHandler struct {
 	db     *gorm.DB
@@ -144,6 +140,10 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 	}
 
 	return nil
+}
+
+func (m *MarketplaceHandler) RouterKey() string {
+	return mptypes.ModuleName
 }
 
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {

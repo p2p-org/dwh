@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgamingfoundation/dwh/handlers"
+
 	cliCtx "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/dwh/common"
@@ -32,10 +34,21 @@ type Indexer struct {
 	cancel    context.CancelFunc // Used to stop main processing loop.
 	cliCtx    cliCtx.CLIContext  // Cosmos CLIContext, used to talk to node.
 	txDecoder sdk.TxDecoder
-	db        *gorm.DB              // Database to store data to.
-	stateDB   *leveldb.DB           // State database to keep indexer state.
-	handlers  map[string]MsgHandler // A map from module name to its handler (e.g., bank, ibc, marketplace, etc.)
-	cursor    *cursor               // Indexer cursor (keeps track of the last processed message).
+	db        *gorm.DB                       // Database to store data to.
+	stateDB   *leveldb.DB                    // State database to keep indexer state.
+	handlers  map[string]handlers.MsgHandler // A map from module name to its handler (e.g., bank, ibc, marketplace, etc.)
+	cursor    *cursor                        // Indexer cursor (keeps track of the last processed message).
+}
+
+type IndexerOption func(indexer *Indexer)
+
+func WithHandler(handler handlers.MsgHandler) IndexerOption {
+	return func(indexer *Indexer) {
+		if indexer.handlers == nil {
+			indexer.handlers = map[string]handlers.MsgHandler{}
+		}
+		indexer.handlers[handler.RouterKey()] = handler
+	}
 }
 
 func NewIndexer(
@@ -44,7 +57,7 @@ func NewIndexer(
 	cliCtx cliCtx.CLIContext,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
-	handlers map[string]MsgHandler,
+	opts ...IndexerOption,
 ) (*Indexer, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	stateDB, err := leveldb.OpenFile(cfg.StatePath, nil)
@@ -60,9 +73,12 @@ func NewIndexer(
 		txDecoder: txDecoder,
 		db:        db,
 		stateDB:   stateDB,
-		handlers:  handlers,
 		cursor:    &cursor{},
 	}
+	for _, opt := range opts {
+		opt(idxr)
+	}
+
 	cursorExists, err := stateDB.Has([]byte(cursorKey), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for indexer cursor: %v", err)
