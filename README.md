@@ -75,7 +75,6 @@ make start-hasura
 
 The command will start a docker container with Hasura on http://localhost:8080
 
-
 ## Example of simple GraphQL query
 
 Query:
@@ -144,3 +143,43 @@ Response:
   }
 }
 ```
+
+### Writing your own module for DWH
+
+DWH codebase is organized with extensibility in mind. If you have a Cosmos application and want to write a DWH module to be able to browse the application data, you should check out the `MsgHandler` interface in `handlers/interfcae.go`:
+
+```go
+// MsgHandler is an interface for a handler used by Indexer to process messages
+// that belong to various modules. Modules are distinguished by their RouterKey
+// (e.g., cosmos-sdk/x/auth.RouterKey).
+//
+// A handler is supposed to process values of type sdk.Msg using the DB
+// connection that is utilized by Indexer.
+type MsgHandler interface {
+	Handle(db *gorm.DB, msg sdk.Msg) error
+	// Setup is meant to prepare the storage. For example, you can create necessary tables
+	// and indices for your module here.
+	Setup(db *gorm.DB) (*gorm.DB, error)
+	// Reset is meant to clear the storage. For example, it is supposed to drop any tables
+	// and indices created by the handler.
+	Reset(db *gorm.DB) (*gorm.DB, error)
+	// RouterKey should return the RouterKey that is used in messages for handler's
+	// module.
+	// Note: the reason why we use RouterKey (not ModuleName) is because CosmosSDK
+	// does not force developers to use ModuleName as RouterKey for registered
+	// messages (even though most modules do so).
+	RouterKey() string
+}
+```
+
+As can be seen from the snippet above, we use [GORM](https://github.com/jinzhu/gorm) for database interaction. Handlers that implement the `MsgHandler` interface can be passed as an option to the indexer (see `cmd/indexer/main.go`):
+
+```go
+idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
+	indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
+)
+```
+
+If handler setup completes successfully, after indexer start messages related to your application will be routed to your handler.
+
+  
