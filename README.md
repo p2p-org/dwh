@@ -5,31 +5,39 @@
 DWH for Dgaming Marketplace consists of two parts:
 
 * The `indexer` that collects data from the Cosmos Marketplace application and stores it in a Postgres database,
-* The `Hasura` that provides a GraphQL querying interface for the collected data.
+* A `Hasura`-based interface that provides GraphQL querying for the collected data.
 
-## Requirements
+DWH is able to:
+* Store transactions and messages (tables `txes` and `messages`);
+* Parse and store data from some of the CosmosSDK built-in modules (e.g., `auth`, `banking`, etc.), which resides mostly in the `users` table;
+* Parse and store any application-specific data. For example, a handler for DGaming Marketplace messages is implemented that can be found at `handlers/marketplace.go`; it is also possible to write an easily pluggable handler for your own Cosmos application (see [this section](#writing-your-own-module-for-dwh) below for details).  
+
+### Requirements
 * A running node of Marketplace
 * PostgreSQL
 * Docker
 
-## How to start Indexer
-* Be sure that you have correct auth data for PostgreSQL
-* Run:
+### How to start Indexer
+
+Make sure that you have correct auth data for PostgreSQL (check the variables in Makefile) and run:
+
 ```bash
 make start-indexer
 ```
-And if everything is all right you will see how indexer collects data from transactions
+
+If everything is correct you will see indexer collecting transactions data.
 
 
-## How to start Hasura
-* Be sure that you have correct auth data for a PostgreSQL and your user has all required permissions:
+### How to start Hasura (the GraphQL-based querying interface)
 
-### How to create a user with superuser's permissions through a command line:
+Be sure that you have correct auth data for a PostgreSQL and your user has all required permissions:
+
+* Create a user with superuser's permissions:
 ```bash
 createuser -l USER_NAME -s superuser -P
 ```
 
-### How to give permission to already existing user with SQL:
+* Or give permission to an already existing user with SQL:
 ```sql
 -- create pgcrypto extension, required for UUID
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -68,14 +76,15 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO USER_NAME;
 -- GRANT ALL ON ALL SEQUENCES IN SCHEMA <schema-name> TO USER_NAME;
 ```
 
-* Just run:
+After youu are done with permissions, just run:
+
 ```bash
 make start-hasura
 ```
 
 The command will start a docker container with Hasura on http://localhost:8080
 
-## Example of simple GraphQL query
+Example of simple GraphQL query:
 
 Query:
 ```
@@ -107,7 +116,7 @@ Response:
 }
 ```
 
-#Example of GraphQL query with gte operator
+Example of a GraphQL query with *gte* operator:
 
 Query:
 
@@ -181,5 +190,3 @@ idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 ```
 
 If handler setup completes successfully, after indexer start messages related to your application will be routed to your handler.
-
-  
