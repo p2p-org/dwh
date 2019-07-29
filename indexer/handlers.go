@@ -3,10 +3,10 @@ package indexer
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth"
+	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
+	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -22,10 +22,10 @@ type MsgHandler interface {
 type MarketplaceHandler struct {
 	db     *gorm.DB
 	cdc    *amino.Codec
-	cliCtx client.CLIContext
+	cliCtx cliContext.CLIContext
 }
 
-func NewMarketplaceHandler(db *gorm.DB, cliCtx client.CLIContext) MsgHandler {
+func NewMarketplaceHandler(db *gorm.DB, cliCtx cliContext.CLIContext) MsgHandler {
 	return &MarketplaceHandler{
 		db:     db,
 		cdc:    app.MakeCodec(),
@@ -44,7 +44,7 @@ func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*commo
 		}
 		user = common.NewUser(
 			"",
-			acc.GetAddress(),
+			acc.GetSequence(),
 			acc.GetCoins(),
 			nil,
 		)
@@ -147,7 +147,7 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 }
 
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
-	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
+	res, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
 	}
@@ -160,7 +160,7 @@ func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
 	return common.NewNFTFromMarketplaceNFT(&nft), nil
 }
 
-func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {
+func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (authtypes.Account, error) {
 	accGetter := authtypes.NewAccountRetriever(m.cliCtx)
 	if err := accGetter.EnsureExists(addr); err != nil {
 		return nil, err
