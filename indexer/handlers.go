@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth"
-	auth "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
@@ -44,7 +44,7 @@ func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*commo
 		}
 		user = common.NewUser(
 			"",
-			acc.GetSequence(),
+			acc.GetAddress(),
 			acc.GetCoins(),
 			nil,
 		)
@@ -147,7 +147,7 @@ func (m *MarketplaceHandler) Handle(msg sdk.Msg) error {
 }
 
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
-	res, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
+	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
 	}
@@ -160,7 +160,7 @@ func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
 	return common.NewNFTFromMarketplaceNFT(&nft), nil
 }
 
-func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (authtypes.Account, error) {
+func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {
 	accGetter := authtypes.NewAccountRetriever(m.cliCtx)
 	if err := accGetter.EnsureExists(addr); err != nil {
 		return nil, err
