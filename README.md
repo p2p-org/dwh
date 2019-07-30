@@ -1,5 +1,7 @@
 # Data Warehouse for Dgaming Marketplace
 
+Data Warehouse (DWH) is an explorer for data stored in any [Cosmos](https://github.com/cosmos/cosmos-sdk)-based blockchain. The way Cosmos applications stores data makes running queries and browser it rather difficult, so there's a need of a tool that will watch the blockchain and mirror its state so that data queries will be efficient and easy. DGaming DWH is such a tool; it uses PostgreSQL to store the data (transactions, messages, data from modules like `auth`, `bank`, etc.) and provides a GraphQL interface to query this data.
+
 ### Overview
 
 DWH for Dgaming Marketplace consists of two parts:
@@ -155,7 +157,7 @@ Response:
 
 ### Writing your own module for DWH
 
-DWH codebase is organized with extensibility in mind. If you have a Cosmos application and want to write a DWH module to be able to browse the application data, you should check out the `MsgHandler` interface in `handlers/interfcae.go`:
+DWH codebase is organized with extensibility in mind. If you have a Cosmos application and want to write a DWH module to be able to browse the application data, you should check out the `MsgHandler` interface in `handlers/interface.go`:
 
 ```go
 // MsgHandler is an interface for a handler used by Indexer to process messages
