@@ -1,35 +1,45 @@
 # Data Warehouse for Dgaming Marketplace
 
+Data Warehouse (DWH) is an explorer for data stored in any [Cosmos](https://github.com/cosmos/cosmos-sdk) -based blockchain. The way Cosmos applications store data makes running queries and browsing rather difficult, so there's a need of a tool that will watch the blockchain and mirror its state so that data queries will be efficient and easy. DGaming DWH is such a tool; it uses PostgreSQL to store the data (transactions, messages, data from modules like `auth`, `bank`, etc.) and provides a GraphQL interface to query this data.
+
 ### Overview
 
 DWH for Dgaming Marketplace consists of two parts:
 
 * The `indexer` that collects data from the Cosmos Marketplace application and stores it in a Postgres database,
-* The `Hasura` that provides a GraphQL querying interface for the collected data.
+* A `Hasura`-based interface that provides GraphQL querying for the collected data.
 
-## Requirements
+DWH is able to:
+* Store transactions and messages (tables `txes` and `messages`);
+* Parse and store data from some of the CosmosSDK built-in modules (e.g., `auth`, `banking`, etc.), which resides mostly in the `users` table;
+* Parse and store any application-specific data. For example, a handler for DGaming Marketplace messages is implemented that can be found at `handlers/marketplace.go`; it is also possible to write an easily pluggable handler for your own Cosmos application (see [this section](#writing-your-own-module-for-dwh) below for details).  
+
+### Requirements
 * A running node of Marketplace
 * PostgreSQL
 * Docker
 
-## How to start Indexer
-* Be sure that you have correct auth data for PostgreSQL
-* Run:
+### How to start Indexer
+
+Make sure that you have correct auth data for PostgreSQL (check the variables in Makefile) and run:
+
 ```bash
 make start-indexer
 ```
-And if everything is all right you will see how indexer collects data from transactions
+
+If everything is correct you will see indexer collecting transactions data.
 
 
-## How to start Hasura
-* Be sure that you have correct auth data for a PostgreSQL and your user has all required permissions:
+### How to start Hasura (the GraphQL-based querying interface)
 
-### How to create a user with superuser's permissions through a command line:
+Be sure that you have correct auth data for a PostgreSQL and your user has all required permissions:
+
+* Create a user with superuser's permissions:
 ```bash
 createuser -l USER_NAME -s superuser -P
 ```
 
-### How to give permission to already existing user with SQL:
+* Or give permission to an already existing user with SQL:
 ```sql
 -- create pgcrypto extension, required for UUID
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -68,15 +78,15 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO USER_NAME;
 -- GRANT ALL ON ALL SEQUENCES IN SCHEMA <schema-name> TO USER_NAME;
 ```
 
-* Just run:
+After youu are done with permissions, just run:
+
 ```bash
 make start-hasura
 ```
 
 The command will start a docker container with Hasura on http://localhost:8080
 
-
-## Example of simple GraphQL query
+Example of simple GraphQL query:
 
 Query:
 ```
@@ -108,7 +118,7 @@ Response:
 }
 ```
 
-#Example of GraphQL query with gte operator
+Example of a GraphQL query with *gte* operator:
 
 Query:
 
@@ -144,3 +154,41 @@ Response:
   }
 }
 ```
+
+### Writing your own module for DWH
+
+DWH codebase is organized with extensibility in mind. If you have a Cosmos application and want to write a DWH module to be able to browse the application data, you should check out the `MsgHandler` interface in `handlers/interface.go`:
+
+```go
+// MsgHandler is an interface for a handler used by Indexer to process messages
+// that belong to various modules. Modules are distinguished by their RouterKey
+// (e.g., cosmos-sdk/x/auth.RouterKey).
+//
+// A handler is supposed to process values of type sdk.Msg using the DB
+// connection that is utilized by Indexer.
+type MsgHandler interface {
+	Handle(db *gorm.DB, msg sdk.Msg) error
+	// Setup is meant to prepare the storage. For example, you can create necessary tables
+	// and indices for your module here.
+	Setup(db *gorm.DB) (*gorm.DB, error)
+	// Reset is meant to clear the storage. For example, it is supposed to drop any tables
+	// and indices created by the handler.
+	Reset(db *gorm.DB) (*gorm.DB, error)
+	// RouterKey should return the RouterKey that is used in messages for handler's
+	// module.
+	// Note: the reason why we use RouterKey (not ModuleName) is because CosmosSDK
+	// does not force developers to use ModuleName as RouterKey for registered
+	// messages (even though most modules do so).
+	RouterKey() string
+}
+```
+
+As can be seen from the snippet above, we use [GORM](https://github.com/jinzhu/gorm) for database interaction. Handlers that implement the `MsgHandler` interface can be passed as an option to the indexer (see `cmd/indexer/main.go`):
+
+```go
+idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
+	indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
+)
+```
+
+If handler setup completes successfully, after indexer start messages related to your application will be routed to your handler.
