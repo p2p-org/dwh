@@ -16,14 +16,17 @@ import (
 )
 
 type MarketplaceHandler struct {
-	cdc    *amino.Codec
-	cliCtx client.CLIContext
+	cdc        *amino.Codec
+	cliCtx     client.CLIContext
+	msgMetrics *common.MsgMetrics
 }
 
 func NewMarketplaceHandler(cliCtx client.CLIContext) MsgHandler {
+	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
 	return &MarketplaceHandler{
-		cdc:    app.MakeCodec(),
-		cliCtx: cliCtx,
+		cdc:        app.MakeCodec(),
+		cliCtx:     cliCtx,
+		msgMetrics: msgMetr,
 	}
 }
 
@@ -51,6 +54,7 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 }
 
 func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
+	m.msgMetrics.NumMsgs.Inc()
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
 		if _, err := m.findOrCreateUser(db, value.Owner); err != nil {
@@ -136,7 +140,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
 		}
 	}
-
+	m.msgMetrics.NumMsgsAccepted.Inc()
 	return nil
 }
 

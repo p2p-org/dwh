@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"path"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dgamingfoundation/dwh/handlers"
 
@@ -60,6 +63,12 @@ func main() {
 	if err := idxr.Setup(true); err != nil {
 		log.Fatalf("failed to setup Indexer: %v", err)
 	}
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":9080", nil); err != nil {
+			panic(err)
+		}
+	}()
 
 	wg, ctx := errgroup.WithContext(ctx)
 	wg.Go(func() error {
