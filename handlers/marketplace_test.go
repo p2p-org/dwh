@@ -15,6 +15,7 @@ func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 	db, err := common.GetDB()
 	if err != nil {
 		t.Errorf("failed to establish database connection: %v", err)
+		return
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
