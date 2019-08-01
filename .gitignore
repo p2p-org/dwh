@@ -16,5 +16,5 @@ build
 
 go.sum
 
-./~
-./indexer.state
+~/
+indexer.state
