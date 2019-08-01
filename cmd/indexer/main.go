@@ -67,7 +67,7 @@ func main() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		if err := http.ListenAndServe(":9080", nil); err != nil {
-			panic(err)
+			log.Fatalf("failed to run prometheus: %v", err)
 		}
 	}()
 
@@ -92,9 +92,10 @@ func main() {
 func getEnv() (cliContext.CLIContext, sdk.TxDecoder) {
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to get current user: %v", err)
 	}
-	viper.Set("home", usr.HomeDir+"/.mpcli")
+
+	viper.Set("home", path.Join(usr.HomeDir, ".mpcli"))
 	viper.Set("chain-id", "mpchain")
 
 	cdc := app.MakeCodec()

@@ -5,27 +5,34 @@ import (
 )
 
 type MsgMetrics struct {
-	NumMsgs         prometheus.Counter
-	NumMsgsAccepted prometheus.Counter
+	NumMsgs *prometheus.CounterVec
 }
 
+const (
+	PrometheusLabelStatus                    = "status"
+	PrometheusLabelMsgType                   = "msg_type"
+	PrometheusValueReceived                  = "Received"
+	PrometheusValueAccepted                  = "Accepted"
+	PrometheusValueCommon                    = "Common"
+	PrometheusValueMsgMintNFT                = "MsgMintNFT"
+	PrometheusValueMsgPutNFTOnMarket         = "MsgPutNFTOnMarket"
+	PrometheusValueMsgBuyNFT                 = "MsgBuyNFT"
+	PrometheusValueMsgTransferNFT            = "MsgTransferNFT"
+	PrometheusValueMsgCreateFungibleToken    = "MsgCreateFungibleToken"
+	PrometheusValueMsgTransferFungibleTokens = "MsgTransferFungibleTokens"
+)
+
 func NewPrometheusMsgMetrics(module string) *MsgMetrics {
-	numMsgs := prometheus.NewCounter(prometheus.CounterOpts{
+	numMsgs := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "DWH",
 		Subsystem: module + "_MetricsSubsystem",
 		Name:      "NumMsgs",
 		Help:      "number of messages since start",
-	})
-	msgsAccepted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "DWH",
-		Subsystem: module + "_MetricsSubsystem",
-		Name:      "NumMsgsAccepted",
-		Help:      "number of messages handled without error",
-	})
+	},
+		[]string{PrometheusLabelStatus, PrometheusLabelMsgType},
+	)
 	prometheus.MustRegister(numMsgs)
-	prometheus.MustRegister(msgsAccepted)
 	return &MsgMetrics{
-		NumMsgs:         numMsgs,
-		NumMsgsAccepted: msgsAccepted,
+		NumMsgs: numMsgs,
 	}
 }
