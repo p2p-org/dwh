@@ -36,12 +36,12 @@ func NewMarketplaceHandler(db *gorm.DB, cliCtx client.CLIContext) MsgHandler {
 func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*common.User, error) {
 	user := &common.User{}
 	m.db.Where("Address = ?", accAddress.String()).First(&user)
+	acc, err := m.getAccount(accAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
+	}
 	if len(user.Address) == 0 {
 		// Create a new user.
-		acc, err := m.getAccount(accAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
-		}
 		user = common.NewUser(
 			"",
 			acc.GetAddress(),
@@ -54,6 +54,11 @@ func (m *MarketplaceHandler) findOrCreateUser(accAddress sdk.AccAddress) (*commo
 		if m.db.Error != nil {
 			return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, m.db.Error)
 		}
+	}
+	user.SequenceNumber = acc.GetSequence()
+	m.db = m.db.Save(&user)
+	if m.db.Error != nil {
+		return nil, fmt.Errorf("failed to update user %s: %v", accAddress, m.db.Error)
 	}
 	return user, nil
 }
