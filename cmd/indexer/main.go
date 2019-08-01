@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"os/user"
 	"path"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -89,7 +90,11 @@ func main() {
 
 // TODO: use the simpler context that is developed by @pr0n00gler.
 func getEnv() (cliContext.CLIContext, sdk.TxDecoder) {
-	viper.Set("home", "~/.mpcli")
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	viper.Set("home", usr.HomeDir+"/.mpcli")
 	viper.Set("chain-id", "mpchain")
 
 	cdc := app.MakeCodec()
