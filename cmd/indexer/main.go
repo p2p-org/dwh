@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/dgamingfoundation/dwh/handlers"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -17,7 +19,6 @@ import (
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/indexer"
 	app "github.com/dgamingfoundation/marketplace"
-	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -45,22 +46,19 @@ func main() {
 			log.Errorf("failed to close database connection: %v", err)
 		}
 	}()
-	db, err = common.InitDB(db, true)
-	if err != nil {
-		log.Fatalf("failed to InitDB: %v", err)
-	}
 
 	cliCtx, txDecoder := getEnv()
 	idxrCfg := &indexer.Config{
 		StatePath: indexerStatePath,
 	}
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
-		map[string]indexer.MsgHandler{
-			mptypes.RouterKey: indexer.NewMarketplaceHandler(db, cliCtx),
-		},
+		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)
 	if err != nil {
 		log.Fatalf("failed to create new indexer: %v", err)
+	}
+	if err := idxr.Setup(true); err != nil {
+		log.Fatalf("failed to setup Indexer: %v", err)
 	}
 
 	wg, ctx := errgroup.WithContext(ctx)
