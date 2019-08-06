@@ -13,3 +13,7 @@ build
 # IDE
 .idea/
 *.iml
+
+go.sum
+
+indexer.state
