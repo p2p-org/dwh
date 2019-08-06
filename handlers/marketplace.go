@@ -16,14 +16,17 @@ import (
 )
 
 type MarketplaceHandler struct {
-	cdc    *amino.Codec
-	cliCtx client.CLIContext
+	cdc        *amino.Codec
+	cliCtx     client.CLIContext
+	msgMetrics *common.MsgMetrics
 }
 
 func NewMarketplaceHandler(cliCtx client.CLIContext) MsgHandler {
+	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
 	return &MarketplaceHandler{
-		cdc:    app.MakeCodec(),
-		cliCtx: cliCtx,
+		cdc:        app.MakeCodec(),
+		cliCtx:     cliCtx,
+		msgMetrics: msgMetr,
 	}
 }
 
@@ -50,9 +53,20 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 	return user, nil
 }
 
+func (m *MarketplaceHandler) increaseCounter(labels ...string) {
+	counter, err := m.msgMetrics.NumMsgs.GetMetricWithLabelValues(labels...)
+	if err != nil {
+		log.Errorf("get metrics with label values error: %v", err)
+		return
+	}
+	counter.Inc()
+}
+
 func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
+	m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueCommon)
 	switch value := msg.(type) {
 	case mptypes.MsgMintNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMintNFT)
 		if _, err := m.findOrCreateUser(db, value.Owner); err != nil {
 			return err
 		}
@@ -68,7 +82,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
 	case mptypes.MsgPutNFTOnMarket:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgPutNFTOnMarket)
 		log.Infof("got message of type MsgSellNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":            true,
@@ -78,7 +94,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgSellNFT): %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgPutNFTOnMarket)
 	case mptypes.MsgBuyNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBuyNFT)
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":       false,
@@ -87,7 +105,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBuyNFT)
 	case mptypes.MsgTransferNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
 			"OnSale":       false,
@@ -96,8 +116,10 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
 		// Also: MsgDeleteNFT (not implemented yet).
 	case mptypes.MsgCreateFungibleToken:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgCreateFungibleToken)
 		log.Infof("got message of type MsgCreateFungibleToken: %+v", value)
 		if _, err := m.findOrCreateUser(db, value.Creator); err != nil {
 			return err
@@ -110,7 +132,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgCreateFungibleToken)
 	case mptypes.MsgTransferFungibleTokens:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferFungibleTokens)
 		log.Infof("got message of type MsgTransferFungibleTokens: %+v", value)
 		var (
 			ft                common.FungibleToken
@@ -135,8 +159,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 		if db.Error != nil {
 			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
 		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferFungibleTokens)
 	}
-
+	m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueCommon)
 	return nil
 }
 

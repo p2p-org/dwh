@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
+	"os/user"
 	"path"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dgamingfoundation/dwh/handlers"
 
@@ -60,6 +64,12 @@ func main() {
 	if err := idxr.Setup(true); err != nil {
 		log.Fatalf("failed to setup Indexer: %v", err)
 	}
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":9080", nil); err != nil {
+			log.Fatalf("failed to run prometheus: %v", err)
+		}
+	}()
 
 	wg, ctx := errgroup.WithContext(ctx)
 	wg.Go(func() error {
@@ -80,7 +90,12 @@ func main() {
 
 // TODO: use the simpler context that is developed by @pr0n00gler.
 func getEnv() (cliContext.CLIContext, sdk.TxDecoder) {
-	viper.Set("home", "~/.mpcli")
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatalf("failed to get current user: %v", err)
+	}
+
+	viper.Set("home", path.Join(usr.HomeDir, ".mpcli"))
 	viper.Set("chain-id", "mpchain")
 
 	cdc := app.MakeCodec()
