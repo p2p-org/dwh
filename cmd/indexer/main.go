@@ -12,6 +12,8 @@ import (
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"os/user"
+	"path"
 )
 
 const (
@@ -19,7 +21,7 @@ const (
 )
 
 const (
-	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
+	nodeEndpoint  = "tcp://localhost:26657"
 	chainID       = "mpchain"
 	vfrHome       = ""
 	height        = 0
@@ -27,8 +29,20 @@ const (
 	broadcastMode = "sync"
 	genOnly       = false
 	validatorName = "user1"
+)
+
+var (
 	cliHome = "~/.mpcli"
 )
+
+func init() {
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	cliHome = path.Join(usr.HomeDir, "/", ".mpcli")
+}
 
 func main() {
 	log.SetLevel(log.DebugLevel)
@@ -81,7 +95,6 @@ func main() {
 	}
 }
 
-// TODO: use the simpler context that is developed by @pr0n00gler.
 func getEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 	cdc := app.MakeCodec()
 
@@ -93,4 +106,3 @@ func getEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 
 	return cliCtx, auth.DefaultTxDecoder(cdc), nil
 }
-
