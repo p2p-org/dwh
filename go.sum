@@ -59,8 +59,8 @@ github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3 h1:tkum0XDgf
 github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3/go.mod h1:zAg7JM8CkOJ43xKXIj7eRO9kmWm/TW578qo+oDO6tuM=
 github.com/dgamingfoundation/dkglib v0.0.0-20190730110748-bffec4019cb8 h1:atXBDyGe2mJ6Mk443z63d8TV7nGNNn/r/9pg3XlmQQM=
 github.com/dgamingfoundation/dkglib v0.0.0-20190730110748-bffec4019cb8/go.mod h1:zouRC3SqzOupH8B4H0bwGr8KG5pC78R6xi/xb0N8wcQ=
-github.com/dgamingfoundation/marketplace v0.0.0-20190723150646-fe2fd52c8909 h1:1lNb2z6EhxnOjjsNPzdcKF3iFj7TvDcH5UXLXau9HlE=
-github.com/dgamingfoundation/marketplace v0.0.0-20190723150646-fe2fd52c8909/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
+github.com/dgamingfoundation/marketplace v0.0.0-20190730173039-2eb669ce5fd8 h1:5tyZSMVLZzYyZvo1NanNEAQpSZRztoM00Z4Z/rzrsB0=
+github.com/dgamingfoundation/marketplace v0.0.0-20190730173039-2eb669ce5fd8/go.mod h1:D0lqkOMNW9SZ/2LEVo/4dux4oG8geSNmXj0U+LBQ+Gw=
 github.com/dgamingfoundation/randapp v0.0.0-20190701100104-b2f0fa470065 h1:nSWF4v+6e6YHRpNvG8YH1Le+/mZ0PzQHm1tcKGdZJxE=
 github.com/dgamingfoundation/randapp v0.0.0-20190701100104-b2f0fa470065/go.mod h1:o/N9Xpwu8QEvLsvlSDeWN/T4JdM9nv70B7FXC2qKmyU=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=

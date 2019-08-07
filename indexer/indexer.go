@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dgamingfoundation/dwh/handlers"
 	"strings"
 	"sync"
 	"time"
@@ -32,10 +33,21 @@ type Indexer struct {
 	cancel    context.CancelFunc // Used to stop main processing loop.
 	cliCtx    cliCtx.CLIContext  // Cosmos CLIContext, used to talk to node.
 	txDecoder sdk.TxDecoder
-	db        *gorm.DB              // Database to store data to.
-	stateDB   *leveldb.DB           // State database to keep indexer state.
-	handlers  map[string]MsgHandler // A map from module name to its handler (e.g., bank, ibc, marketplace, etc.)
-	cursor    *cursor               // Indexer cursor (keeps track of the last processed message).
+	db        *gorm.DB                       // Database to store data to.
+	stateDB   *leveldb.DB                    // State database to keep indexer state.
+	handlers  map[string]handlers.MsgHandler // A map from module name to its handler (e.g., bank, ibc, marketplace, etc.)
+	cursor    *cursor                        // Indexer cursor (keeps track of the last processed message).
+}
+
+type IndexerOption func(indexer *Indexer)
+
+func WithHandler(handler handlers.MsgHandler) IndexerOption {
+	return func(indexer *Indexer) {
+		if indexer.handlers == nil {
+			indexer.handlers = map[string]handlers.MsgHandler{}
+		}
+		indexer.handlers[handler.RouterKey()] = handler
+	}
 }
 
 func NewIndexer(
@@ -44,7 +56,7 @@ func NewIndexer(
 	cliCtx cliCtx.CLIContext,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
-	handlers map[string]MsgHandler,
+	opts ...IndexerOption,
 ) (*Indexer, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	stateDB, err := leveldb.OpenFile(cfg.StatePath, nil)
@@ -60,9 +72,12 @@ func NewIndexer(
 		txDecoder: txDecoder,
 		db:        db,
 		stateDB:   stateDB,
-		handlers:  handlers,
 		cursor:    &cursor{},
 	}
+	for _, opt := range opts {
+		opt(idxr)
+	}
+
 	cursorExists, err := stateDB.Has([]byte(cursorKey), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for indexer cursor: %v", err)
@@ -82,6 +97,62 @@ func NewIndexer(
 	}
 
 	return idxr, nil
+}
+
+func (m *Indexer) Setup(reset bool) error {
+	if m.db == nil {
+		return errors.New("can not set up indexer, db connection is not initialized")
+	}
+
+	if err := m.setupIndexerTables(reset); err != nil {
+		return fmt.Errorf("failed to setup Indexer tables: %v", err)
+	}
+
+	// Do handler-specific setup.
+	var err error
+	for routerKey, handler := range m.handlers {
+		log.Printf("setting up module %s", routerKey)
+		if reset {
+			if m.db, err = handler.Reset(m.db); err != nil {
+				log.Errorf("failed to reset module %s: %v", routerKey, err)
+				continue
+			}
+		}
+		if m.db, err = handler.Setup(m.db); err != nil {
+			log.Errorf("failed to set up module %s: %v", routerKey, err)
+		}
+	}
+
+	return nil
+}
+
+func (m *Indexer) setupIndexerTables(reset bool) error {
+	// Setup global Indexer tables.
+	if reset {
+		m.db = m.db.DropTableIfExists(&common.Message{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to drop table messages: %v", m.db.Error)
+		}
+		m.db = m.db.DropTableIfExists(&common.Tx{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to drop table txes: %v", m.db.Error)
+		}
+	}
+	m.db = m.db.CreateTable(&common.Tx{})
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+	}
+	m.db = m.db.CreateTable(&common.Message{})
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+	}
+	m.db = m.db.Model(&common.Message{}).AddForeignKey(
+		"tx_id", "txes(id)", "CASCADE", "CASCADE")
+	if m.db.Error != nil {
+		return fmt.Errorf("failed to add foreign key (messages): %v", m.db.Error)
+	}
+
+	return nil
 }
 
 func (m *Indexer) Start() error {
@@ -204,7 +275,7 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) 
 		return errors.New(errMsg)
 	}
 
-	if err := handler.Handle(msg); err != nil {
+	if err := handler.Handle(m.db, msg); err != nil {
 		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
 		return errors.New(errMsg)
 	}

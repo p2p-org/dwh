@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"os/user"
+	"path"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/dgamingfoundation/dwh/handlers"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/indexer"
 	app "github.com/dgamingfoundation/marketplace"
-	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"os/user"
-	"path"
 )
 
 const (
@@ -57,10 +62,6 @@ func main() {
 			log.Errorf("failed to close database connection: %v", err)
 		}
 	}()
-	db, err = common.InitDB(db, true)
-	if err != nil {
-		log.Fatalf("failed to InitDB: %v", err)
-	}
 
 	cliCtx, txDecoder, err := getEnv()
 	if err != nil {
@@ -70,13 +71,20 @@ func main() {
 		StatePath: indexerStatePath,
 	}
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
-		map[string]indexer.MsgHandler{
-			mptypes.RouterKey: indexer.NewMarketplaceHandler(db, cliCtx),
-		},
+		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)
 	if err != nil {
 		log.Fatalf("failed to create new indexer: %v", err)
 	}
+	if err := idxr.Setup(true); err != nil {
+		log.Fatalf("failed to setup Indexer: %v", err)
+	}
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":9080", nil); err != nil {
+			log.Fatalf("failed to run prometheus: %v", err)
+		}
+	}()
 
 	wg, ctx := errgroup.WithContext(ctx)
 	wg.Go(func() error {
