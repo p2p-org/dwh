@@ -34,21 +34,11 @@ const (
 	broadcastModeFlag = "broadcast_mode"
 	genOnlyFlag       = "gen_only"
 	userNameFlag      = "user_name"
-)
-
-var (
-	cliHome = "~/.mpcli"
+	cliHomeFlag       = "cli_home"
 )
 
 func init() {
-	usr, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-
 	initConfig()
-
-	cliHome = path.Join(usr.HomeDir, "/", ".mpcli")
 }
 
 func main() {
@@ -124,7 +114,7 @@ func getEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 		viper.GetString(vfrHomeFlag),
 		viper.GetInt64(heightFlag),
 		viper.GetBool(trustNodeFlag),
-		cliHome,
+		viper.GetString(cliHomeFlag),
 		"")
 	if err != nil {
 		return cliContext.CLIContext{}, nil, err
@@ -135,6 +125,11 @@ func getEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 }
 
 func initConfig() {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatalf("failed to get current user, exiting: %v", err)
+	}
+
 	viper.SetDefault(pprofEnabledFlag, true)
 	viper.SetDefault(pprofHostPortFlag, "localhost:6061")
 	viper.SetDefault(statePathFlag, "./indexer.state")
@@ -146,12 +141,13 @@ func initConfig() {
 	viper.SetDefault(broadcastModeFlag, "sync")
 	viper.SetDefault(genOnlyFlag, false)
 	viper.SetDefault(userNameFlag, "user1")
+	viper.SetDefault(cliHomeFlag, path.Join(usr.HomeDir, ".mpcli"))
 
 	viper.SetConfigName(configFileName)
 	viper.AddConfigPath("$HOME/.dwh/cfg")
 	viper.AddConfigPath(".")
 
-	err := viper.ReadInConfig()
+	err = viper.ReadInConfig()
 	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 		log.Println("config file not found, using default configuration")
 	} else {
