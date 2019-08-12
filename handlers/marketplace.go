@@ -3,10 +3,10 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -17,11 +17,11 @@ import (
 
 type MarketplaceHandler struct {
 	cdc        *amino.Codec
-	cliCtx     client.CLIContext
+	cliCtx     cliContext.CLIContext
 	msgMetrics *common.MsgMetrics
 }
 
-func NewMarketplaceHandler(cliCtx client.CLIContext) MsgHandler {
+func NewMarketplaceHandler(cliCtx cliContext.CLIContext) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
 	return &MarketplaceHandler{
 		cdc:        app.MakeCodec(),

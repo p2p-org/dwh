@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dgamingfoundation/dwh/handlers"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/dgamingfoundation/dwh/handlers"
-
-	cliCtx "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	cliCtx "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
