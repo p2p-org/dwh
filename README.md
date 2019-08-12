@@ -192,3 +192,20 @@ idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 ```
 
 If handler setup completes successfully, after indexer start messages related to your application will be routed to your handler.
+
+### Profiling
+	
+DWH uses `pprof`. To get a flame graph, run:
+
+```bash
+go tool pprof -raw -seconds 30 http://localhost:6061/debug/pprof/profile
+
+```
+
+Then run:
+
+```bash
+go-torch --file "torch.svg" --url http://localhost:6061
+```
+
+After 30 seconds you will get `torch.svg` file with the flame graph.

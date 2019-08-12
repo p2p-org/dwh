@@ -3,37 +3,37 @@ package main
 import (
 	"context"
 	"net/http"
+	_ "net/http/pprof"
 	"os/user"
 	"path"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/dgamingfoundation/dwh/handlers"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/handlers"
 	"github.com/dgamingfoundation/dwh/indexer"
 	app "github.com/dgamingfoundation/marketplace"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
 
 const (
-	indexerStatePath = "./indexer.state"
-)
-
-const (
-	nodeEndpoint  = "tcp://localhost:26657"
-	chainID       = "mpchain"
-	vfrHome       = ""
-	height        = 0
-	trustNode     = false
-	broadcastMode = "sync"
-	genOnly       = false
-	validatorName = "user1"
+	pprofEnabledFlag  = "pprof_enabled"
+	pprofHostPortFlag = "pprof_host_port"
+	statePathFlag     = "state_path"
+	configFileName    = "indexer"
+	nodeEndpointFlag  = "node_endpoint"
+	chainIDFlag       = "chain_id"
+	vfrHomeFlag       = "vfr_home"
+	heightFlag        = "height"
+	trustNodeFlag     = "trust_node"
+	broadcastModeFlag = "broadcast_mode"
+	genOnlyFlag       = "gen_only"
+	userNameFlag      = "user_name"
 )
 
 var (
@@ -46,12 +46,21 @@ func init() {
 		panic(err)
 	}
 
+	initConfig()
+
 	cliHome = path.Join(usr.HomeDir, "/", ".mpcli")
 }
 
 func main() {
 	log.SetLevel(log.DebugLevel)
 	var ctx = context.Background()
+
+	if viper.GetBool(pprofEnabledFlag) {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+
+	}
 
 	db, err := common.GetDB()
 	if err != nil {
@@ -68,7 +77,7 @@ func main() {
 		log.Fatalf("failed to get env: %v", err)
 	}
 	idxrCfg := &indexer.Config{
-		StatePath: indexerStatePath,
+		StatePath: viper.GetString(statePathFlag),
 	}
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
@@ -106,11 +115,46 @@ func main() {
 func getEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 	cdc := app.MakeCodec()
 
-	cliCtx, err := cliContext.NewCLIContext(chainID, nodeEndpoint, validatorName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome, "")
+	cliCtx, err := cliContext.NewCLIContext(
+		viper.GetString(chainIDFlag),
+		viper.GetString(nodeEndpointFlag),
+		viper.GetString(userNameFlag),
+		viper.GetBool(genOnlyFlag),
+		viper.GetString(broadcastModeFlag),
+		viper.GetString(vfrHomeFlag),
+		viper.GetInt64(heightFlag),
+		viper.GetBool(trustNodeFlag),
+		cliHome,
+		"")
 	if err != nil {
 		return cliContext.CLIContext{}, nil, err
 	}
 	cliCtx = cliCtx.WithCodec(cdc)
 
 	return cliCtx, auth.DefaultTxDecoder(cdc), nil
+}
+
+func initConfig() {
+	viper.SetDefault(pprofEnabledFlag, true)
+	viper.SetDefault(pprofHostPortFlag, "localhost:6061")
+	viper.SetDefault(statePathFlag, "./indexer.state")
+	viper.SetDefault(nodeEndpointFlag, "tcp://localhost:26657")
+	viper.SetDefault(chainIDFlag, "mpchain")
+	viper.SetDefault(vfrHomeFlag, "")
+	viper.SetDefault(heightFlag, 0)
+	viper.SetDefault(trustNodeFlag, false)
+	viper.SetDefault(broadcastModeFlag, "sync")
+	viper.SetDefault(genOnlyFlag, false)
+	viper.SetDefault(userNameFlag, "user1")
+
+	viper.SetConfigName(configFileName)
+	viper.AddConfigPath("$HOME/.dwh/cfg")
+	viper.AddConfigPath(".")
+
+	err := viper.ReadInConfig()
+	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+		log.Println("config file not found, using default configuration")
+	} else {
+		log.Fatalf("failed to parse config file, exiting: %v", err)
+	}
 }
