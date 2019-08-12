@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -32,23 +33,33 @@ func NewMarketplaceHandler(cliCtx cliContext.CLIContext) MsgHandler {
 
 func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAddress) (*common.User, error) {
 	user := &common.User{}
-	db.Where("Address = ?", accAddress.String()).First(&user)
-	if len(user.Address) == 0 {
+	acc, err := m.getAccount(accAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
+	}
+	row := db.Table("users").Where("address = ?", accAddress.String()).Row()
+	err = row.Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Name, &user.Address, &user.Balance, &user.AccountNumber, &user.SequenceNumber)
+	if err == sql.ErrNoRows {
 		// Create a new user.
-		acc, err := m.getAccount(accAddress)
-		if err != nil {
-			return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
-		}
 		user = common.NewUser(
 			"",
 			acc.GetAddress(),
 			acc.GetCoins(),
+			acc.GetAccountNumber(),
+			acc.GetSequence(),
 			nil,
 		)
-		db = db.Create(&user)
-		if db.Error != nil {
+		if db.Create(&user).Error != nil {
 			return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, db.Error)
 		}
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	user.SequenceNumber = acc.GetSequence()
+	db = db.Model(&user).Update("sequence_number", user.SequenceNumber)
+	if db.Error != nil {
+		return nil, fmt.Errorf("failed to update user %s: %v", accAddress, db.Error)
 	}
 	return user, nil
 }
