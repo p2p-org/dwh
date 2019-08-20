@@ -3,7 +3,7 @@ package common
 import (
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
 	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -13,26 +13,20 @@ type NFT struct {
 	gorm.Model
 	OwnerAddress      string `gorm:"type:varchar(45)"`
 	TokenID           string `gorm:"unique;not null"`
-	Name              string
-	Description       string
-	Image             string
 	TokenURI          string
-	OnSale            bool
+	Status            int
 	Price             string
 	SellerBeneficiary string
 }
 
-func NewNFTFromMarketplaceNFT(nft *types.NFT) *NFT {
+func NewNFTFromMarketplaceNFT(nft *types.NFTInfo) *NFT {
 	return &NFT{
-		TokenID:           nft.GetID(),
-		OwnerAddress:      nft.GetOwner().String(),
-		Name:              nft.GetName(),
-		Description:       nft.GetDescription(),
-		Image:             nft.GetImage(),
-		TokenURI:          nft.GetTokenURI(),
-		OnSale:            nft.IsOnSale(),
-		Price:             nft.GetPrice().String(),
-		SellerBeneficiary: nft.SellerBeneficiary.String(),
+		TokenID:           nft.ID,
+		OwnerAddress:      nft.Owner.String(),
+		TokenURI:          nft.NFTMetaData.TokenURI,
+		Status:            int(nft.MPNFTInfo.Status),
+		Price:             nft.MPNFTInfo.GetPrice().String(),
+		SellerBeneficiary: nft.MPNFTInfo.SellerBeneficiary.String(),
 	}
 }
 

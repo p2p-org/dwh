@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/dgamingfoundation/cosmos-sdk/x/nft"
+
+	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
+	"github.com/dgamingfoundation/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/dgamingfoundation/cosmos-sdk/x/auth/types"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
@@ -76,20 +78,17 @@ func (m *MarketplaceHandler) increaseCounter(labels ...string) {
 func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 	m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueCommon)
 	switch value := msg.(type) {
-	case mptypes.MsgMintNFT:
+	case nft.MsgMintNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMintNFT)
-		if _, err := m.findOrCreateUser(db, value.Owner); err != nil {
+		if _, err := m.findOrCreateUser(db, value.Recipient); err != nil {
 			return err
 		}
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-		db = db.Create(&common.NFT{
-			OwnerAddress: value.Owner.String(),
-			TokenID:      value.TokenID,
-			Name:         value.Name,
-			Description:  value.Description,
-			Image:        value.Image,
-			TokenURI:     value.TokenURI,
-		})
+		token, err := m.getNFT(value.ID)
+		if err != nil {
+			return fmt.Errorf("failed to getNFT: %v", err)
+		}
+		db = db.Create(token)
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
@@ -117,7 +116,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBuyNFT)
-	case mptypes.MsgTransferNFT:
+	case nft.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
@@ -250,17 +249,17 @@ func (m *MarketplaceHandler) Reset(db *gorm.DB) (*gorm.DB, error) {
 }
 
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
-	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
+	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/token/%s", tokenID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
 	}
 
-	var nft mptypes.NFT
-	if err := m.cdc.UnmarshalJSON(res, &nft); err != nil {
+	var token mptypes.NFTInfo
+	if err := m.cdc.UnmarshalJSON(res, &token); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal NFT: %v", err)
 	}
 
-	return common.NewNFTFromMarketplaceNFT(&nft), nil
+	return common.NewNFTFromMarketplaceNFT(&token), nil
 }
 
 func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {

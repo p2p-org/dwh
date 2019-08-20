@@ -7,8 +7,8 @@ import (
 	"os/user"
 	"path"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
+	"github.com/dgamingfoundation/cosmos-sdk/x/auth"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/handlers"

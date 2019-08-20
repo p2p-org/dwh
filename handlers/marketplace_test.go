@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
+	cliContext "github.com/dgamingfoundation/cosmos-sdk/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/handlers"
 	app "github.com/dgamingfoundation/marketplace"
