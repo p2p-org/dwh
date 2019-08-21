@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 
@@ -18,7 +17,6 @@ import (
 
 func main() {
 	common.InitConfig()
-	fmt.Println(viper.GetString(common.StatePathFlag))
 	log.SetLevel(log.DebugLevel)
 	var ctx = context.Background()
 

@@ -1,0 +1,16 @@
+# This is DWH configuration file, it should be placed either in
+# current directory or inside $HOME/.dwh/config.
+
+prometheus_enabled: false
+prometheus_host_port: "localhost:9081"
+pprof_enabled: false
+pprof_host_port: "localhost:6061"
+state_path: "./indexer.state"
+node_endpoint: "tcp://localhost:26657"
+chain_id: "mpchain"
+vfr_home: ""
+height: 0
+trust_node: false
+broadcast_mode: "sync"
+gen_only: false
+user_name: "user1"

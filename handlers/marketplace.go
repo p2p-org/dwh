@@ -175,8 +175,8 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
 	return nil
 }
 
-func (m *MarketplaceHandler) RouterKey() string {
-	return mptypes.ModuleName
+func (m *MarketplaceHandler) RouterKeys() []string {
+	return []string{mptypes.ModuleName, nft.ModuleName}
 }
 
 func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
@@ -249,7 +249,7 @@ func (m *MarketplaceHandler) Reset(db *gorm.DB) (*gorm.DB, error) {
 }
 
 func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
-	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/token/%s", tokenID), nil)
+	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
 	}

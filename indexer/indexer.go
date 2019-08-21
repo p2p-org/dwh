@@ -47,7 +47,9 @@ func WithHandler(handler handlers.MsgHandler) IndexerOption {
 		if indexer.handlers == nil {
 			indexer.handlers = map[string]handlers.MsgHandler{}
 		}
-		indexer.handlers[handler.RouterKey()] = handler
+		for _, routerKey := range handler.RouterKeys() {
+			indexer.handlers[routerKey] = handler
+		}
 	}
 }
 

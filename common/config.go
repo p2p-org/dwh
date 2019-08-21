@@ -51,13 +51,14 @@ func InitConfig() {
 	viper.SetDefault(CliHomeFlag, path.Join(usr.HomeDir, ".mpcli"))
 
 	viper.SetConfigName(configFileName)
-	viper.AddConfigPath("$HOME/.dwh/cfg")
+	viper.AddConfigPath("$HOME/.dwh/config")
 	viper.AddConfigPath(".")
 
-	err = viper.ReadInConfig()
-	if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-		log.Println("config file not found, using default configuration")
-	} else {
-		log.Fatalf("failed to parse config file, exiting: %v", err)
+	if err = viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Println("config file not found, using default configuration")
+		} else {
+			log.Fatalf("failed to parse config file, exiting: %v", err)
+		}
 	}
 }
