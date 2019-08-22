@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
 )
 
@@ -19,10 +19,13 @@ type MsgHandler interface {
 	// Reset is meant to clear the storage. For example, it is supposed to drop any tables
 	// and indices created by the handler.
 	Reset(db *gorm.DB) (*gorm.DB, error)
-	// RouterKey should return the RouterKey that is used in messages for handler's
-	// module.
+	// RouterKey should return the RouterKeys that are used in messages for handler's
+	// module. Multiple keys allow for using the same handler for multiple routes
+	// (which might be required if the application intercepts some other module's
+	// messages).
+	//
 	// Note: the reason why we use RouterKey (not ModuleName) is because CosmosSDK
 	// does not force developers to use ModuleName as RouterKey for registered
 	// messages (even though most modules do so).
-	RouterKey() string
+	RouterKeys() []string
 }

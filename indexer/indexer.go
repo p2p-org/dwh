@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dgamingfoundation/dwh/handlers"
 	"strings"
 	"sync"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/dgamingfoundation/dwh/handlers"
+
+	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	cliCtx "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/jinzhu/gorm"
@@ -46,7 +47,9 @@ func WithHandler(handler handlers.MsgHandler) IndexerOption {
 		if indexer.handlers == nil {
 			indexer.handlers = map[string]handlers.MsgHandler{}
 		}
-		indexer.handlers[handler.RouterKey()] = handler
+		for _, routerKey := range handler.RouterKeys() {
+			indexer.handlers[routerKey] = handler
+		}
 	}
 }
 
