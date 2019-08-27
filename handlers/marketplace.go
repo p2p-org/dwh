@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/dgamingfoundation/cosmos-sdk/x/nft"
-
 	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	"github.com/dgamingfoundation/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/dgamingfoundation/cosmos-sdk/x/auth/types"
+	"github.com/dgamingfoundation/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
@@ -16,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
 type MarketplaceHandler struct {
@@ -75,7 +75,7 @@ func (m *MarketplaceHandler) increaseCounter(labels ...string) {
 	counter.Inc()
 }
 
-func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg) error {
+func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTypes.Event) error {
 	m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueCommon)
 	switch value := msg.(type) {
 	case nft.MsgMintNFT:

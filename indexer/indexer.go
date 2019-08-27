@@ -8,14 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgamingfoundation/dwh/handlers"
-
 	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	cliCtx "github.com/dgamingfoundation/dkglib/lib/client/context"
 	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/handlers"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
 )
@@ -224,7 +224,14 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		}
 
 		for msgID, msg := range tx.GetMsgs() {
-			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg); err != nil {
+			// Collect all message-related events from transaction result.
+			var events []*abciTypes.Event
+			for _, ev := range txRes.TxResult.GetEvents() {
+				if ev.Type == msg.Type() {
+					events = append(events, &ev)
+				}
+			}
+			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, events...); err != nil {
 				if err == errCursor {
 					// This is a fatal error, indexer should be stopped.
 					return err
@@ -241,7 +248,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 	return nil
 }
 
-func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) error {
+func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, events ...*abciTypes.Event) error {
 	if msgID < m.cursor.MsgID {
 		log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
 		return nil
@@ -278,7 +285,7 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg) 
 		return errors.New(errMsg)
 	}
 
-	if err := handler.Handle(m.db, msg); err != nil {
+	if err := handler.Handle(m.db, msg, events...); err != nil {
 		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
 		return errors.New(errMsg)
 	}

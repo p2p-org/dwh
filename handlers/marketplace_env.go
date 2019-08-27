@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-
 	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	"github.com/dgamingfoundation/cosmos-sdk/x/auth"
 	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
@@ -13,18 +11,6 @@ import (
 
 func GetEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
 	cdc := app.MakeCodec()
-
-	fmt.Println(
-		viper.GetString(common.ChainIDFlag),
-		viper.GetString(common.NodeEndpointFlag),
-		viper.GetString(common.UserNameFlag),
-		viper.GetBool(common.GenOnlyFlag),
-		viper.GetString(common.BroadcastModeFlag),
-		viper.GetString(common.VfrHomeFlag),
-		viper.GetInt64(common.HeightFlag),
-		viper.GetBool(common.TrustNodeFlag),
-		viper.GetString(common.CliHomeFlag))
-
 	cliCtx, err := cliContext.NewCLIContext(
 		viper.GetString(common.ChainIDFlag),
 		viper.GetString(common.NodeEndpointFlag),
