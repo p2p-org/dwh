@@ -1,29 +1,22 @@
 package handlers
 
 import (
-	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
-	"github.com/dgamingfoundation/cosmos-sdk/x/auth"
-	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
 	"github.com/spf13/viper"
 )
 
-func GetEnv() (cliContext.CLIContext, sdk.TxDecoder, error) {
+func GetEnv() (cliContext.Context, sdk.TxDecoder, error) {
 	cdc := app.MakeCodec()
-	cliCtx, err := cliContext.NewCLIContext(
+	cliCtx, err := cliContext.NewContext(
 		viper.GetString(common.ChainIDFlag),
 		viper.GetString(common.NodeEndpointFlag),
-		viper.GetString(common.UserNameFlag),
-		viper.GetBool(common.GenOnlyFlag),
-		viper.GetString(common.BroadcastModeFlag),
-		viper.GetString(common.VfrHomeFlag),
-		viper.GetInt64(common.HeightFlag),
-		viper.GetBool(common.TrustNodeFlag),
-		viper.GetString(common.CliHomeFlag),
-		"")
+		viper.GetString(common.CliHomeFlag))
 	if err != nil {
-		return cliContext.CLIContext{}, nil, err
+		return cliContext.Context{}, nil, err
 	}
 	cliCtx = cliCtx.WithCodec(cdc)
 
