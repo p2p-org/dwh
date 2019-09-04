@@ -3,6 +3,7 @@ package handlers
 import (
 	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
+	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
 // MsgHandler is an interface for a handler used by Indexer to process messages
@@ -12,8 +13,11 @@ import (
 // A handler is supposed to process values of type sdk.Msg using the DB
 // connection that is utilized by Indexer.
 type MsgHandler interface {
-	Handle(db *gorm.DB, msg sdk.Msg) error
-	// Setup is meant to prepare the storage. For example, you can create necessary tables
+	// Handle is supposed to handle a message along with its associated events.
+	// NOTE:  only events that have the same type as the message
+	// can be associated with that message.
+	Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTypes.Event) error
+	// Setup is supposed to prepare the storage. For example, you can create necessary tables
 	// and indices for your module here.
 	Setup(db *gorm.DB) (*gorm.DB, error)
 	// Reset is meant to clear the storage. For example, it is supposed to drop any tables
