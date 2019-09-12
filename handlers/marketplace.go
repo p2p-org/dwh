@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
-	"github.com/dgamingfoundation/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/dgamingfoundation/cosmos-sdk/x/auth/types"
-	"github.com/dgamingfoundation/cosmos-sdk/x/nft"
-	cliContext "github.com/dgamingfoundation/dkglib/lib/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/nft"
+	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -20,11 +20,11 @@ import (
 
 type MarketplaceHandler struct {
 	cdc        *amino.Codec
-	cliCtx     cliContext.CLIContext
+	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
 }
 
-func NewMarketplaceHandler(cliCtx cliContext.CLIContext) MsgHandler {
+func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
 	return &MarketplaceHandler{
 		cdc:        app.MakeCodec(),

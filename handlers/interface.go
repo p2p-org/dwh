@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/jinzhu/gorm"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 )

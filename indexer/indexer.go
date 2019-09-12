@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	sdk "github.com/dgamingfoundation/cosmos-sdk/types"
-	cliCtx "github.com/dgamingfoundation/dkglib/lib/client/context"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	cliCtx "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/handlers"
 	"github.com/jinzhu/gorm"
@@ -32,7 +32,7 @@ type Indexer struct {
 	mu        sync.Mutex
 	ctx       context.Context    // Global context for Indexer.
 	cancel    context.CancelFunc // Used to stop main processing loop.
-	cliCtx    cliCtx.CLIContext  // Cosmos CLIContext, used to talk to node.
+	cliCtx    cliCtx.Context     // Cosmos CLIContext, used to talk to node.
 	txDecoder sdk.TxDecoder
 	db        *gorm.DB                       // Database to store data to.
 	stateDB   *leveldb.DB                    // State database to keep indexer state.
@@ -56,7 +56,7 @@ func WithHandler(handler handlers.MsgHandler) IndexerOption {
 func NewIndexer(
 	ctx context.Context,
 	cfg *Config,
-	cliCtx cliCtx.CLIContext,
+	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
 	opts ...IndexerOption,
