@@ -17,6 +17,7 @@ type NFT struct {
 	Status            int
 	Price             string
 	SellerBeneficiary string
+	Offers            []Offer `gorm:"ForeignKey:TokenID"`
 }
 
 func NewNFTFromMarketplaceNFT(nft *types.NFTInfo) *NFT {
@@ -27,6 +28,26 @@ func NewNFTFromMarketplaceNFT(nft *types.NFTInfo) *NFT {
 		Status:            int(nft.MPNFTInfo.Status),
 		Price:             nft.MPNFTInfo.GetPrice().String(),
 		SellerBeneficiary: nft.MPNFTInfo.SellerBeneficiary.String(),
+	}
+}
+
+type Offer struct {
+	gorm.Model
+	OfferID               string
+	Buyer                 string
+	Price                 string
+	BuyerBeneficiary      string
+	BeneficiaryCommission string
+	TokenID               int64
+}
+
+func NewOffer(offer *types.Offer, tokenID int64) *Offer {
+	return &Offer{
+		OfferID:               offer.ID,
+		Buyer:                 offer.Buyer.String(),
+		BuyerBeneficiary:      offer.BuyerBeneficiary.String(),
+		BeneficiaryCommission: offer.BeneficiaryCommission,
+		TokenID:               tokenID,
 	}
 }
 
