@@ -24,7 +24,8 @@ const (
 	PrometheusValueMsgMakeOffer              = "MsgMakeOffer"
 	PrometheusValueMsgAcceptOffer            = "MsgAcceptOffer"
 	PrometheusValueMsgPutNFTOnAuction        = "MsgPutNFTOnAuction"
-	PrometheusValueMsgRemoveNFTFromAuction   = "MsgRemoveNFTFromAuction"
+	PrometheusValueMsgRemoveFromAuction      = "MsgRemoveFromAuction"
+	PrometheusValueMsgMakeBidOnAuction       = "MsgMakeBidOnAuction"
 )
 
 func NewPrometheusMsgMetrics(module string) *MsgMetrics {

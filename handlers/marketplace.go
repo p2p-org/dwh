@@ -158,7 +158,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgPutNFTOnAuction)
 	case mptypes.MsgRemoveNFTFromAuction:
-		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgRemoveNFTFromAuction)
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgRemoveFromAuction)
 		db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
 			"Status":            mptypes.NFTStatusDefault,
 			"BuyoutPrice":       sdk.Coins{}.String(),
@@ -167,9 +167,53 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			"TimeToSell":        0,
 		})
 		if db.Error != nil {
-			return fmt.Errorf("failed to update nft (MsgPutNFTOnAuction): %v", db.Error)
+			return fmt.Errorf("failed to update nft (MsgRemoveNFTFromAuction): %v", db.Error)
 		}
-		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveNFTFromAuction)
+		db.Where("TokenID = ?", value.TokenID).Delete(&common.AuctionBid{})
+		if db.Error != nil {
+			return fmt.Errorf("failed to delete bids (MsgRemoveNFTFromAuction): %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveFromAuction)
+	case mptypes.MsgMakeBidOnAuction:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMakeBidOnAuction)
+		// Find out whether we had a buyout.
+		var isBuyout bool
+		for _, event := range events {
+			if event.Type == msg.Type() {
+				for _, attr := range event.Attributes {
+					if attr.Key == mptypes.AttributeKeyIsBuyout {
+						isBuyout = true
+						break
+					}
+				}
+				break
+			}
+		}
+		if isBuyout {
+			db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
+				"OwnerAddress":      value.Bidder.String(),
+				"Status":            mptypes.NFTStatusDefault,
+				"BuyoutPrice":       sdk.Coins{}.String(),
+				"OpeningPrice":      sdk.Coins{}.String(),
+				"SellerBeneficiary": "",
+				"TimeToSell":        0,
+			})
+			db.Where("TokenID = ?", value.TokenID).Delete(&common.AuctionBid{})
+		} else {
+			db.Model(&common.NFT{TokenID: value.TokenID}).Association("Bids").Append(
+				&common.AuctionBid{
+					BidderAddress:         value.Bidder.String(),
+					BidderBeneficiary:     value.BuyerBeneficiary.String(),
+					BeneficiaryCommission: value.BeneficiaryCommission,
+					Price:                 value.Bid.String(),
+				},
+			)
+			if db.Error != nil {
+				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+			}
+		}
+
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMakeBidOnAuction)
 	case mptypes.MsgMakeOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMakeOffer)
 		var (
@@ -198,6 +242,8 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 				offer.Buyer = value.Buyer
 				offer.BuyerBeneficiary = value.BuyerBeneficiary
 				offer.BeneficiaryCommission = value.BeneficiaryCommission
+
+				break
 			}
 		}
 		if !found {
@@ -322,6 +368,11 @@ func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
 		"token_id", "nfts(id)", "CASCADE", "CASCADE")
 	if db.Error != nil {
 		return nil, fmt.Errorf("failed to add foreign key (offers): %v", db.Error)
+	}
+	db = db.Model(&common.AuctionBid{}).AddForeignKey(
+		"token_id", "nfts(id)", "CASCADE", "CASCADE")
+	if db.Error != nil {
+		return nil, fmt.Errorf("failed to add foreign key (bids): %v", db.Error)
 	}
 
 	db = db.Model(&common.FungibleTokenTransfer{}).AddForeignKey(

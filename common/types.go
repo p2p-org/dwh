@@ -19,12 +19,15 @@ type NFT struct {
 	Status            int
 	Price             string
 	SellerBeneficiary string
-	Offers            []Offer `gorm:"ForeignKey:TokenID"`
 
 	// Auction-related fields
 	BuyoutPrice  string
 	OpeningPrice string
 	TimeToSell   time.Duration
+
+	// Relations
+	Offers []Offer      `gorm:"ForeignKey:TokenID"`
+	Bids   []AuctionBid `gorm:"ForeignKey:TokenID"`
 }
 
 func NewNFTFromMarketplaceNFT(tokenID, ownerAddress, tokenURI string) *NFT {
@@ -54,6 +57,14 @@ func NewOffer(offer *types.Offer, tokenID int64) *Offer {
 		BeneficiaryCommission: offer.BeneficiaryCommission,
 		TokenID:               tokenID,
 	}
+}
+
+type AuctionBid struct {
+	BidderAddress         string
+	BidderBeneficiary     string
+	BeneficiaryCommission string
+	Price                 string
+	TokenID               int64
 }
 
 type FungibleToken struct {
