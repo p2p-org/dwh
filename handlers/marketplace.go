@@ -138,7 +138,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
 			"Status":       mptypes.NFTStatusDefault,
 			"OwnerAddress": value.Buyer.String(),
-			"Price":        sdk.Coin{}.String(),
+			"Price":        sdk.Coins{}.String(),
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", db.Error)
@@ -157,6 +157,19 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			return fmt.Errorf("failed to update nft (MsgPutNFTOnAuction): %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgPutNFTOnAuction)
+	case mptypes.MsgRemoveNFTFromAuction:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgRemoveNFTFromAuction)
+		db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
+			"Status":            mptypes.NFTStatusDefault,
+			"BuyoutPrice":       sdk.Coins{}.String(),
+			"OpeningPrice":      sdk.Coins{}.String(),
+			"SellerBeneficiary": "",
+			"TimeToSell":        0,
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgPutNFTOnAuction): %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveNFTFromAuction)
 	case mptypes.MsgMakeOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMakeOffer)
 		var (
