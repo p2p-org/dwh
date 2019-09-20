@@ -16,12 +16,14 @@ const (
 	PrometheusValueCommon                    = "Common"
 	PrometheusValueMsgMintNFT                = "MsgMintNFT"
 	PrometheusValueMsgPutNFTOnMarket         = "MsgPutNFTOnMarket"
+	PrometheusValueMsgRemoveNFTFromMarket    = "MsgRemoveNFTFromMarket"
 	PrometheusValueMsgBuyNFT                 = "MsgBuyNFT"
 	PrometheusValueMsgTransferNFT            = "MsgTransferNFT"
 	PrometheusValueMsgCreateFungibleToken    = "MsgCreateFungibleToken"
 	PrometheusValueMsgTransferFungibleTokens = "MsgTransferFungibleTokens"
 	PrometheusValueMsgMakeOffer              = "MsgMakeOffer"
 	PrometheusValueMsgAcceptOffer            = "MsgAcceptOffer"
+	PrometheusValueMsgPutNFTOnAuction        = "MsgPutNFTOnAuction"
 )
 
 func NewPrometheusMsgMetrics(module string) *MsgMetrics {

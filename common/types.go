@@ -2,6 +2,7 @@ package common
 
 import (
 	"strings"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -19,6 +20,11 @@ type NFT struct {
 	Price             string
 	SellerBeneficiary string
 	Offers            []Offer `gorm:"ForeignKey:TokenID"`
+
+	// Auction-related fields
+	BuyoutPrice  string
+	OpeningPrice string
+	TimeToSell   time.Duration
 }
 
 func NewNFTFromMarketplaceNFT(tokenID, ownerAddress, tokenURI string) *NFT {

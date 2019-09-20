@@ -100,6 +100,17 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
+	case nft.MsgTransferNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
+		log.Infof("got message of type MsgTransferNFT: %+v", value)
+		db = db.Model(&common.NFT{TokenID: value.ID}).
+			UpdateColumns(map[string]interface{}{
+				"OwnerAddress": value.Recipient.String(),
+			})
+		if db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
 	case mptypes.MsgPutNFTOnMarket:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgPutNFTOnMarket)
 		log.Infof("got message of type MsgSellNFT: %+v", value)
@@ -109,75 +120,43 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			"SellerBeneficiary": value.Beneficiary.String(),
 		})
 		if db.Error != nil {
-			return fmt.Errorf("failed to update nft (MsgSellNFT): %v", db.Error)
+			return fmt.Errorf("failed to update nft (MsgPutNFTOnMarket): %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgPutNFTOnMarket)
+	case mptypes.MsgRemoveNFTFromMarket:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgRemoveNFTFromMarket)
+		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+			"Status": mptypes.NFTStatusDefault,
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgRemoveNFTFromMarket): %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveNFTFromMarket)
 	case mptypes.MsgBuyNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBuyNFT)
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
-		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+		db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
 			"Status":       mptypes.NFTStatusDefault,
 			"OwnerAddress": value.Buyer.String(),
+			"Price":        sdk.Coin{}.String(),
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBuyNFT)
-	case nft.MsgTransferNFT:
-		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
-		log.Infof("got message of type MsgTransferNFT: %+v", value)
-		db = db.Model(&common.NFT{}).
-			Where("TokenID = ?", value.ID).
-			UpdateColumns(map[string]interface{}{
-				"OwnerAddress": value.Recipient.String(),
-			})
-		if db.Error != nil {
-			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
-		}
-		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
-		// Also: MsgDeleteNFT (not implemented yet).
-	case mptypes.MsgCreateFungibleToken:
-		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgCreateFungibleToken)
-		log.Infof("got message of type MsgCreateFungibleToken: %+v", value)
-		if _, err := m.findOrCreateUser(db, value.Creator); err != nil {
-			return err
-		}
-		db = db.Create(&common.FungibleToken{
-			OwnerAddress:   value.Creator.String(),
-			Denom:          value.Denom,
-			EmissionAmount: value.Amount,
+	case mptypes.MsgPutNFTOnAuction:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgPutNFTOnAuction)
+		db = db.Model(&common.NFT{TokenID: value.TokenID}).UpdateColumns(map[string]interface{}{
+			"Status":            mptypes.NFTStatusOnAuction,
+			"BuyoutPrice":       value.BuyoutPrice.String(),
+			"OpeningPrice":      value.OpeningPrice,
+			"SellerBeneficiary": value.Beneficiary,
+			"TimeToSell":        value.TimeToSell,
 		})
 		if db.Error != nil {
-			return fmt.Errorf("failed to create nft: %v", db.Error)
+			return fmt.Errorf("failed to update nft (MsgPutNFTOnAuction): %v", db.Error)
 		}
-		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgCreateFungibleToken)
-	case mptypes.MsgTransferFungibleTokens:
-		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferFungibleTokens)
-		log.Infof("got message of type MsgTransferFungibleTokens: %+v", value)
-		var (
-			ft                common.FungibleToken
-			sender, recipient *common.User
-			err               error
-		)
-		if sender, err = m.findOrCreateUser(db, value.Owner); err != nil {
-			return err
-		}
-		if recipient, err = m.findOrCreateUser(db, value.Recipient); err != nil {
-			return err
-		}
-		db.Where("denom = ?", value.Denom).First(&ft)
-		if ft.ID == 0 {
-			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
-		}
-		db.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
-			SenderAddress:    sender.Address,
-			RecipientAddress: recipient.Address,
-			Amount:           value.Amount,
-		})
-		if db.Error != nil {
-			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
-		}
-		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferFungibleTokens)
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgPutNFTOnAuction)
 	case mptypes.MsgMakeOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMakeOffer)
 		var (
@@ -246,6 +225,48 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			"OwnerAddress": offer.Buyer,
 		})
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgAcceptOffer)
+	case mptypes.MsgCreateFungibleToken:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgCreateFungibleToken)
+		log.Infof("got message of type MsgCreateFungibleToken: %+v", value)
+		if _, err := m.findOrCreateUser(db, value.Creator); err != nil {
+			return err
+		}
+		db = db.Create(&common.FungibleToken{
+			OwnerAddress:   value.Creator.String(),
+			Denom:          value.Denom,
+			EmissionAmount: value.Amount,
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to create nft: %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgCreateFungibleToken)
+	case mptypes.MsgTransferFungibleTokens:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferFungibleTokens)
+		log.Infof("got message of type MsgTransferFungibleTokens: %+v", value)
+		var (
+			ft                common.FungibleToken
+			sender, recipient *common.User
+			err               error
+		)
+		if sender, err = m.findOrCreateUser(db, value.Owner); err != nil {
+			return err
+		}
+		if recipient, err = m.findOrCreateUser(db, value.Recipient); err != nil {
+			return err
+		}
+		db.Where("denom = ?", value.Denom).First(&ft)
+		if ft.ID == 0 {
+			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+		}
+		db.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
+			SenderAddress:    sender.Address,
+			RecipientAddress: recipient.Address,
+			Amount:           value.Amount,
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferFungibleTokens)
 	}
 	m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueCommon)
 	return nil
