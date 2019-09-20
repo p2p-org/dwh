@@ -40,7 +40,16 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 		return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
 	}
 	row := db.Table("users").Where("address = ?", accAddress.String()).Row()
-	err = row.Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt, &user.Name, &user.Address, &user.Balance, &user.AccountNumber, &user.SequenceNumber)
+	err = row.Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.DeletedAt,
+		&user.Name,
+		&user.Address,
+		&user.Balance,
+		&user.AccountNumber,
+		&user.SequenceNumber)
 	if err == sql.ErrNoRows {
 		// Create a new user.
 		user = common.NewUser(
@@ -84,11 +93,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			return err
 		}
 		log.Infof("got message of type MsgMintNFT: %+v", value)
-		token, err := m.getNFT(value.ID)
-		if err != nil {
-			return fmt.Errorf("failed to getNFT: %v", err)
-		}
-		db = db.Create(token)
+		db = db.Create(
+			common.NewNFTFromMarketplaceNFT(value.ID, value.Recipient.String(), value.TokenURI),
+		)
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
@@ -321,20 +328,6 @@ func (m *MarketplaceHandler) Reset(db *gorm.DB) (*gorm.DB, error) {
 	}
 
 	return db, nil
-}
-
-func (m *MarketplaceHandler) getNFT(tokenID string) (*common.NFT, error) {
-	res, _, err := m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not find token with TokenID %s: %v", tokenID, err)
-	}
-
-	var token mptypes.NFTInfo
-	if err := m.cdc.UnmarshalJSON(res, &token); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal NFT: %v", err)
-	}
-
-	return common.NewNFTFromMarketplaceNFT(&token), nil
 }
 
 func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {

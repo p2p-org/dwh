@@ -11,8 +11,9 @@ import (
 
 type NFT struct {
 	gorm.Model
-	OwnerAddress      string `gorm:"type:varchar(45)"`
+	Denom             string
 	TokenID           string `gorm:"unique;not null"`
+	OwnerAddress      string `gorm:"type:varchar(45)"`
 	TokenURI          string
 	Status            int
 	Price             string
@@ -20,14 +21,12 @@ type NFT struct {
 	Offers            []Offer `gorm:"ForeignKey:TokenID"`
 }
 
-func NewNFTFromMarketplaceNFT(nft *types.NFTInfo) *NFT {
+func NewNFTFromMarketplaceNFT(tokenID, ownerAddress, tokenURI string) *NFT {
 	return &NFT{
-		TokenID:           nft.ID,
-		OwnerAddress:      nft.Owner.String(),
-		TokenURI:          nft.NFTMetaData.TokenURI,
-		Status:            int(nft.MPNFTInfo.Status),
-		Price:             nft.MPNFTInfo.GetPrice().String(),
-		SellerBeneficiary: nft.MPNFTInfo.SellerBeneficiary.String(),
+		TokenID:      tokenID,
+		OwnerAddress: ownerAddress,
+		TokenURI:     tokenURI,
+		Status:       int(types.NFTStatusDefault),
 	}
 }
 
