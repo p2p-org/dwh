@@ -97,7 +97,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgPutNFTOnMarket)
 		log.Infof("got message of type MsgSellNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
-			"OnSale":            true,
+			"Status":            mptypes.NFTStatusOnMarket,
 			"Price":             value.Price.String(),
 			"SellerBeneficiary": value.Beneficiary.String(),
 		})
@@ -109,7 +109,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBuyNFT)
 		log.Infof("got message of type MsgBuyNFT: %+v", value)
 		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
-			"OnSale":       false,
+			"Status":       mptypes.NFTStatusDefault,
 			"OwnerAddress": value.Buyer.String(),
 		})
 		if db.Error != nil {
@@ -119,10 +119,11 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 	case nft.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
 		log.Infof("got message of type MsgTransferNFT: %+v", value)
-		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
-			"OnSale":       false,
-			"OwnerAddress": value.Recipient.String(),
-		})
+		db = db.Model(&common.NFT{}).
+			Where("TokenID = ?", value.ID).
+			UpdateColumns(map[string]interface{}{
+				"OwnerAddress": value.Recipient.String(),
+			})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
 		}
@@ -210,6 +211,34 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMakeOffer)
+	case mptypes.MsgAcceptOffer:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgAcceptOffer)
+		// First retrieve token ID in database.
+		var (
+			token  = common.NFT{}
+			offers []*common.Offer
+		)
+		db.Where("id = ?", value.TokenID).Related(&offers).First(token)
+		if token.ID == 0 {
+			return fmt.Errorf("failed to find token with id %s: %v", value.TokenID, db.Error)
+		}
+		db.Where("TokenID = ?", token.TokenID).Delete(&common.Offer{})
+		if db.Error != nil {
+			return fmt.Errorf("failed to delete offers: %v", db.Error)
+		}
+		var offer common.Offer
+		for _, offerCandidate := range offers {
+			if offer.OfferID == value.OfferID {
+				offer = *offerCandidate
+			}
+		}
+		if offer.ID == 0 {
+			return fmt.Errorf("unknown offer ID (not found in related offers): %s", value.OfferID)
+		}
+		db = db.Model(&common.NFT{}).UpdateColumns(map[string]interface{}{
+			"OwnerAddress": offer.Buyer,
+		})
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgAcceptOffer)
 	}
 	m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueCommon)
 	return nil

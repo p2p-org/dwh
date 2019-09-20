@@ -21,6 +21,7 @@ const (
 	PrometheusValueMsgCreateFungibleToken    = "MsgCreateFungibleToken"
 	PrometheusValueMsgTransferFungibleTokens = "MsgTransferFungibleTokens"
 	PrometheusValueMsgMakeOffer              = "MsgMakeOffer"
+	PrometheusValueMsgAcceptOffer            = "MsgAcceptOffer"
 )
 
 func NewPrometheusMsgMetrics(module string) *MsgMetrics {
