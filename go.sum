@@ -69,6 +69,10 @@ github.com/dgamingfoundation/marketplace v0.0.0-20190913142513-ff10c2b85237 h1:3
 github.com/dgamingfoundation/marketplace v0.0.0-20190913142513-ff10c2b85237/go.mod h1:dR2O3HeDTpC2g0nMsjcCwwUqjQcMRaBKOoH34dsRYnA=
 github.com/dgamingfoundation/marketplace v0.0.0-20190913142902-d0d9bfd113c8 h1:tRYvTMYduJAwKBe/QQf7Tv2uNC2kE6BnrwAJsX563ik=
 github.com/dgamingfoundation/marketplace v0.0.0-20190913142902-d0d9bfd113c8/go.mod h1:dR2O3HeDTpC2g0nMsjcCwwUqjQcMRaBKOoH34dsRYnA=
+github.com/dgamingfoundation/marketplace v0.0.0-20190920150854-8eceb2db9d29 h1:dE487COxqE3q1sIJhH7zDstGIofuBH78ebZkOSLf54c=
+github.com/dgamingfoundation/marketplace v0.0.0-20190920150854-8eceb2db9d29/go.mod h1:dR2O3HeDTpC2g0nMsjcCwwUqjQcMRaBKOoH34dsRYnA=
+github.com/dgamingfoundation/marketplace v0.0.0-20190921170316-3f75ec596be6 h1:0KbGk3qXMDjLu5mo/vI8+mlPjQMubwgkbnVNBD4eTZo=
+github.com/dgamingfoundation/marketplace v0.0.0-20190921170316-3f75ec596be6/go.mod h1:dR2O3HeDTpC2g0nMsjcCwwUqjQcMRaBKOoH34dsRYnA=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/eapache/go-resiliency v1.1.0/go.mod h1:kFI+JgMyC7bLPUVY133qvEBtVayf5mFgVsvEsIPBvNs=
