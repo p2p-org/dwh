@@ -92,22 +92,22 @@ echo "Finish TOKEN_5 auction"
 mpcli tx marketplace finish_auction TOKEN_5 --from user1 -y <<< '12345678'
 sleep 5
 
-## >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-#
-#echo "Put TOKEN_6 on auction"
-#mpcli tx marketplace put_on_auction TOKEN_6 10token ${sellerBeneficiary} 10m --buyout 100token --from user1 -y <<< '12345678'
-#sleep 5
-#
-#echo "Bid on TOKEN_6"
-#mpcli tx marketplace bid TOKEN_6 ${buyerBeneficiary} 50token --from user2 -y <<< '12345678'
-#sleep 5
-#
-## >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-#
-#echo "Offer a price for TOKEN_7"
-#mpcli tx marketplace offer TOKEN_7 100token ${buyerBeneficiary} --from user2 -y <<< '12345678'
-#sleep 5
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-#echo "Offer a price for TOKEN_6"
-#mpcli tx marketplace accept_offer TOKEN_7 [offer_id] [beneficiary] --from user1 -y <<< '12345678'
-#sleep 5
+echo "Put TOKEN_6 on auction"
+mpcli tx marketplace put_on_auction TOKEN_6 10token ${sellerBeneficiary} 10m --buyout 100token --from user1 -y <<< '12345678'
+sleep 5
+
+echo "Bid on TOKEN_6"
+mpcli tx marketplace bid TOKEN_6 ${buyerBeneficiary} 50token --from user2 -y <<< '12345678'
+sleep 5
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+echo "Offer a price for TOKEN_7"
+mpcli tx marketplace offer TOKEN_7 100token ${buyerBeneficiary} --from user2 -y <<< '12345678'
+sleep 5
+
+echo "Offer a price for TOKEN_6"
+mpcli tx marketplace accept_offer TOKEN_7 [offer_id] [beneficiary] --from user1 -y <<< '12345678'
+sleep 5
