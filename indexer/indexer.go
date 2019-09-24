@@ -224,14 +224,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		}
 
 		for msgID, msg := range tx.GetMsgs() {
-			// Collect all message-related events from transaction result.
-			var events []*abciTypes.Event
-			for _, ev := range txRes.TxResult.GetEvents() {
-				if ev.Type == msg.Type() {
-					events = append(events, &ev)
-				}
-			}
-			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, events...); err != nil {
+			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, txRes.TxResult.GetEvents()...); err != nil {
 				if err == errCursor {
 					// This is a fatal error, indexer should be stopped.
 					return err
@@ -248,7 +241,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 	return nil
 }
 
-func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, events ...*abciTypes.Event) error {
+func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, events ...abciTypes.Event) error {
 	if msgID < m.cursor.MsgID {
 		log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
 		return nil
