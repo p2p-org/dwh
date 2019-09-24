@@ -272,12 +272,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgAcceptOffer)
 
 		var offers []*common.Offer
-
-		// What the fuck?..
-		// db2, _ := gorm.Open("postgres", common.ConnString)
-		// db2 = db2.Where("token_id = ?", value.TokenID).Find(&offers)
-		// fmt.Printf("%+v\n", offers)
-
 		db = db.Where("token_id = ?", value.TokenID).Find(&offers)
 		if db.Error != nil {
 			return fmt.Errorf("failed to find offers (MsgAcceptOffer): %v", db.Error)
