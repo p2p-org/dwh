@@ -40,9 +40,9 @@ type Indexer struct {
 	cursor    *cursor                        // Indexer cursor (keeps track of the last processed message).
 }
 
-type IndexerOption func(indexer *Indexer)
+type Option func(indexer *Indexer)
 
-func WithHandler(handler handlers.MsgHandler) IndexerOption {
+func WithHandler(handler handlers.MsgHandler) Option {
 	return func(indexer *Indexer) {
 		if indexer.handlers == nil {
 			indexer.handlers = map[string]handlers.MsgHandler{}
@@ -59,7 +59,7 @@ func NewIndexer(
 	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
-	opts ...IndexerOption,
+	opts ...Option,
 ) (*Indexer, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	stateDB, err := leveldb.OpenFile(cfg.StatePath, nil)

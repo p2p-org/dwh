@@ -46,10 +46,10 @@ type Offer struct {
 	Price                 string
 	BuyerBeneficiary      string
 	BeneficiaryCommission string
-	TokenID               int64
+	TokenID               string
 }
 
-func NewOffer(offer *types.Offer, tokenID int64) *Offer {
+func NewOffer(offer *types.Offer, tokenID string) *Offer {
 	return &Offer{
 		OfferID:               offer.ID,
 		Buyer:                 offer.Buyer.String(),
@@ -60,11 +60,12 @@ func NewOffer(offer *types.Offer, tokenID int64) *Offer {
 }
 
 type AuctionBid struct {
+	gorm.Model
 	BidderAddress         string
 	BidderBeneficiary     string
 	BeneficiaryCommission string
 	Price                 string
-	TokenID               int64
+	TokenID               string
 }
 
 type FungibleToken struct {
