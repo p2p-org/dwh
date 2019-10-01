@@ -88,6 +88,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		if err != nil {
 			return fmt.Errorf("failed to getNFT: %v", err)
 		}
+
 		db = db.Create(token)
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
