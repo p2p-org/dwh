@@ -25,7 +25,7 @@ type ImageProcessingWorker struct {
 	destination         string
 	encoder             png.Encoder
 	client              http.Client
-	cfg                 *DwhImgServiceConfig
+	cfg                 *DwhQueueServiceConfig
 }
 
 func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessingWorker, error) {
@@ -55,7 +55,7 @@ func (irw *ImageProcessingWorker) Closer() error {
 }
 
 func (irw *ImageProcessingWorker) Run() error {
-	msgs, err := irw.receiver.GetMessageChan()
+	msgs, err := irw.receiver.GetImgMessageChan()
 	if err != nil {
 		return err
 	}

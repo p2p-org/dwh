@@ -5,13 +5,15 @@ import (
 )
 
 type RMQReceiver struct {
-	config *DwhImgServiceConfig
+	config *DwhQueueServiceConfig
 	conn   *amqp.Connection
-	ch     *amqp.Channel
+	imgCh  *amqp.Channel
 	imgQ   *amqp.Queue
+	uriCh  *amqp.Channel
+	uriQ   *amqp.Queue
 }
 
-func NewRMQReceiver(cfg *DwhImgServiceConfig) (*RMQReceiver, error) {
+func NewRMQReceiver(cfg *DwhQueueServiceConfig) (*RMQReceiver, error) {
 	addr := QueueAddrStringFromConfig(cfg)
 
 	conn, err := amqp.Dial(addr)
@@ -19,26 +21,55 @@ func NewRMQReceiver(cfg *DwhImgServiceConfig) (*RMQReceiver, error) {
 		return nil, err
 	}
 
-	ch, err := conn.Channel()
+	imgCh, err := conn.Channel()
 	if err != nil {
 		return nil, err
 	}
-	qArgs := map[string]interface{}{"x-max-priority": cfg.ImgQueueMaxPriority}
 
-	q, err := ch.QueueDeclare(
+	imgQArgs := map[string]interface{}{"x-max-priority": cfg.ImgQueueMaxPriority}
+
+	imgQ, err := imgCh.QueueDeclare(
 		cfg.ImgQueueName,
 		true,
 		false,
 		false,
 		false,
-		qArgs,
+		imgQArgs,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ch.Qos(
+	err = imgCh.Qos(
 		cfg.ImgQueuePrefetchCount,
+		0,
+		false,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	uriCh, err := conn.Channel()
+	if err != nil {
+		return nil, err
+	}
+
+	uriQArgs := map[string]interface{}{"x-max-priority": cfg.UriQueueMaxPriority}
+
+	uriQ, err := uriCh.QueueDeclare(
+		cfg.UriQueueName,
+		true,
+		false,
+		false,
+		false,
+		uriQArgs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = uriCh.Qos(
+		cfg.UriQueuePrefetchCount,
 		0,
 		false,
 	)
@@ -49,14 +80,20 @@ func NewRMQReceiver(cfg *DwhImgServiceConfig) (*RMQReceiver, error) {
 	return &RMQReceiver{
 		config: cfg,
 		conn:   conn,
-		ch:     ch,
-		imgQ:   &q,
+		imgCh:  imgCh,
+		imgQ:   &imgQ,
+		uriCh:  uriCh,
+		uriQ:   &uriQ,
 	}, nil
 
 }
 
 func (rs *RMQReceiver) Closer() error {
-	if err := rs.ch.Close(); err != nil {
+	if err := rs.imgCh.Close(); err != nil {
+		return err
+	}
+
+	if err := rs.uriCh.Close(); err != nil {
 		return err
 	}
 
@@ -66,9 +103,22 @@ func (rs *RMQReceiver) Closer() error {
 	return nil
 }
 
-func (rs *RMQReceiver) GetMessageChan() (<-chan amqp.Delivery, error) {
-	msgs, err := rs.ch.Consume(
+func (rs *RMQReceiver) GetImgMessageChan() (<-chan amqp.Delivery, error) {
+	msgs, err := rs.imgCh.Consume(
 		rs.imgQ.Name,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	return msgs, err
+}
+
+func (rs *RMQReceiver) GetUriMessageChan() (<-chan amqp.Delivery, error) {
+	msgs, err := rs.uriCh.Consume(
+		rs.uriQ.Name,
 		"",
 		false,
 		false,

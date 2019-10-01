@@ -7,7 +7,7 @@ import (
 )
 
 type RMQSender struct {
-	config *DwhImgServiceConfig
+	config *DwhQueueServiceConfig
 	conn   *amqp.Connection
 	ch     *amqp.Channel
 	imgQ   *amqp.Queue

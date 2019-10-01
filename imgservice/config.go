@@ -14,7 +14,7 @@ type Resolution struct {
 	Height uint `json:"height"`
 }
 
-type DwhImgServiceConfig struct {
+type DwhQueueServiceConfig struct {
 	QueueScheme   string `mapstructure:"queue_scheme"`
 	QueueAddr     string `mapstructure:"queue_addr"`
 	QueuePort     int    `mapstructure:"queue_port"`
@@ -23,8 +23,12 @@ type DwhImgServiceConfig struct {
 	QueuePassword string `mapstructure:"queue_password"`
 
 	ImgQueueName          string `mapstructure:"img_queue_name"`
-	ImgQueueMaxPriority   int    `mapstructure:"max_priority"`
-	ImgQueuePrefetchCount int    `mapstructure:"prefetch_count"`
+	ImgQueueMaxPriority   int    `mapstructure:"img_max_priority"`
+	ImgQueuePrefetchCount int    `mapstructure:"img_prefetch_count"`
+
+	UriQueueName          string `mapstructure:"uri_queue_name"`
+	UriQueueMaxPriority   int    `mapstructure:"uri_max_priority"`
+	UriQueuePrefetchCount int    `mapstructure:"uri_prefetch_count"`
 
 	StoreAddr           string       `mapstructure:"store_addr"`
 	StorePort           int          `mapstructure:"store_port"`
@@ -32,8 +36,8 @@ type DwhImgServiceConfig struct {
 	InterpolationMethod int          `mapstructure:"interpolation_method"` // 2
 }
 
-func DefaultDwhImgServiceConfig() *DwhImgServiceConfig {
-	return &DwhImgServiceConfig{
+func DefaultDwhQueueServiceConfig() *DwhQueueServiceConfig {
+	return &DwhQueueServiceConfig{
 		QueueScheme:   "amqp",
 		QueueAddr:     "localhost",
 		QueuePort:     5672,
@@ -44,6 +48,10 @@ func DefaultDwhImgServiceConfig() *DwhImgServiceConfig {
 		ImgQueueMaxPriority:   10,
 		ImgQueuePrefetchCount: 1,
 
+		UriQueueName:          "dwh_uri_tasks",
+		UriQueueMaxPriority:   10,
+		UriQueuePrefetchCount: 1,
+
 		StoreAddr:           "http://localhost",
 		StorePort:           DefaultStorePort,
 		Resolutions:         []Resolution{{640, 480}, {440, 330}, {200, 150}, {120, 90}},
@@ -51,7 +59,7 @@ func DefaultDwhImgServiceConfig() *DwhImgServiceConfig {
 	}
 }
 
-func QueueAddrStringFromConfig(cfg *DwhImgServiceConfig) string {
+func QueueAddrStringFromConfig(cfg *DwhQueueServiceConfig) string {
 	u := url.URL{
 		Scheme: cfg.QueueScheme,
 		User:   url.UserPassword(cfg.QueueUsername, cfg.QueuePassword),
@@ -61,20 +69,20 @@ func QueueAddrStringFromConfig(cfg *DwhImgServiceConfig) string {
 	return u.String()
 }
 
-func ReadDwhImageServiceConfig(configName, path string) *DwhImgServiceConfig {
-	var cfg *DwhImgServiceConfig
+func ReadDwhImageServiceConfig(configName, path string) *DwhQueueServiceConfig {
+	var cfg *DwhQueueServiceConfig
 	vCfg := viper.New()
 	vCfg.SetConfigName(configName)
 	vCfg.AddConfigPath(path)
 	err := vCfg.ReadInConfig()
 	if err != nil {
 		fmt.Println("ERROR: server config file not found, error:", err)
-		return DefaultDwhImgServiceConfig()
+		return DefaultDwhQueueServiceConfig()
 	}
 	err = vCfg.Unmarshal(&cfg)
 	if err != nil {
 		fmt.Println("ERROR: could not unmarshal server config file, error:", err)
-		return DefaultDwhImgServiceConfig()
+		return DefaultDwhQueueServiceConfig()
 	}
 
 	return cfg

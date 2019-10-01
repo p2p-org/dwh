@@ -14,16 +14,17 @@ import (
 	"strconv"
 )
 
-const StoragePath = "/tmp/dwh_test"
 const FileNameFormat = "%s_%s_%d_%d"
 
 type ImgStore struct {
 	optionStoreCompressed bool
+	storagePath           string
 }
 
-func NewImgStore(storeCompressed bool) *ImgStore {
+func NewImgStore(storagePath string, storeCompressed bool) *ImgStore {
 	return &ImgStore{
 		optionStoreCompressed: storeCompressed,
+		storagePath:           storagePath,
 	}
 }
 
@@ -49,7 +50,7 @@ func (ims *ImgStore) StoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ims *ImgStore) storeImg(req *ImageStoreRequest) error {
-	dirPath := path.Join(StoragePath, req.Owner)
+	dirPath := path.Join(ims.storagePath, req.Owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(dirPath, 0777)
@@ -174,7 +175,7 @@ func (ims *ImgStore) LoadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ims *ImgStore) loadImg(owner, imgType string, width, height int) ([]byte, error) {
-	dirPath := path.Join(StoragePath, owner)
+	dirPath := path.Join(ims.storagePath, owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(dirPath, 0777)
@@ -246,7 +247,7 @@ func (ims *ImgStore) GetCheckSumHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ims *ImgStore) getCheckFile(req *ImageCheckSumRequest) bool {
-	dirPath := path.Join(StoragePath, req.Owner)
+	dirPath := path.Join(ims.storagePath, req.Owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(dirPath, 0777)
@@ -261,7 +262,7 @@ func (ims *ImgStore) getCheckFile(req *ImageCheckSumRequest) bool {
 
 	name := fmt.Sprintf(FileNameFormat, req.Owner, req.ImgType, req.Resolution.Width, req.Resolution.Height)
 	filename := fmt.Sprintf("%x+%x", md5.Sum([]byte(name)), req.MD5Sum)
-	fileFullName := path.Join(StoragePath, req.Owner, filename)
+	fileFullName := path.Join(ims.storagePath, req.Owner, filename)
 
 	_, err = os.Stat(fileFullName)
 	if os.IsNotExist(err) {
