@@ -1,4 +1,4 @@
-package tokenMetadataSaverService
+package tokenMetadataService
 
 import (
 	"encoding/json"

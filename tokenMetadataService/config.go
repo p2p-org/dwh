@@ -1,7 +1,8 @@
-package tokenMetadataSaverService
+package tokenMetadataService
 
 import (
 	"fmt"
+	"github.com/dgamingfoundation/dwh/imgservice"
 	"net/url"
 
 	"github.com/spf13/viper"
@@ -15,9 +16,7 @@ type DwhQueueServiceConfig struct {
 	QueueUsername string `mapstructure:"queue_username"`
 	QueuePassword string `mapstructure:"queue_password"`
 
-	ImgQueueName          string `mapstructure:"img_queue_name"`
-	ImgQueueMaxPriority   int    `mapstructure:"img_max_priority"`
-	ImgQueuePrefetchCount int    `mapstructure:"img_prefetch_count"`
+	ImgQueuePriority imgservice.ImgQueuePriority `mapstructure:"img_queue_priority"`
 
 	UriQueueName          string `mapstructure:"uri_queue_name"`
 	UriQueueMaxPriority   int    `mapstructure:"uri_max_priority"`
@@ -38,9 +37,7 @@ func DefaultDwhQueueServiceConfig() *DwhQueueServiceConfig {
 		QueueUsername: "guest",
 		QueuePassword: "guest",
 
-		ImgQueueName:          "dwh_img_tasks",
-		ImgQueueMaxPriority:   10,
-		ImgQueuePrefetchCount: 1,
+		ImgQueuePriority: 10,
 
 		UriQueueName:          "dwh_uri_tasks",
 		UriQueueMaxPriority:   10,
@@ -48,7 +45,8 @@ func DefaultDwhQueueServiceConfig() *DwhQueueServiceConfig {
 
 		MongoUserName:   "dgaming",
 		MongoUserPass:   "dgaming",
-		MongoDatabase:   "localhost:27017",
+		MongoHost:       "localhost:27017",
+		MongoDatabase:   "dgaming",
 		MongoCollection: "token_metadata",
 	}
 }

@@ -45,7 +45,7 @@ func main() {
 	idxrCfg := &indexer.Config{
 		StatePath: viper.GetString(common.StatePathFlag),
 	}
-	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db, mongoDB,
+	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)
 	if err != nil {

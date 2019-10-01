@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/tokenMetadataService"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -21,15 +22,20 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
-	uriSender
+	uriSender  *tokenMetadataService.RMQSender
 }
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
+	sender, err := tokenMetadataService.NewRMQSender("", "")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 	return &MarketplaceHandler{
 		cdc:        app.MakeCodec(),
 		cliCtx:     cliCtx,
 		msgMetrics: msgMetr,
+		uriSender:  sender,
 	}
 }
 
@@ -92,6 +98,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTyp
 		db = db.Create(token)
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
+		}
+		if err := m.uriSender.Publish(token.TokenID, token.TokenURI, token.OwnerAddress, 1); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
 	case mptypes.MsgPutNFTOnMarket:
@@ -270,4 +279,10 @@ func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, 
 	}
 
 	return accGetter.GetAccount(addr)
+}
+
+func (m *MarketplaceHandler) Stop() {
+	if err := m.uriSender.Closer(); err != nil {
+		fmt.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
+	}
 }

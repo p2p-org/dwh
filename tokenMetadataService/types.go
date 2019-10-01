@@ -1,4 +1,4 @@
-package tokenMetadataSaverService
+package tokenMetadataService
 
 type TokenInfo struct {
 	TokenID string

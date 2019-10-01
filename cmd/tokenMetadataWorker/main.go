@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/dgamingfoundation/dwh/tokenMetadataSaverService"
+	"github.com/dgamingfoundation/dwh/tokenMetadataService"
 )
 
 func main() {
-	worker, err := tokenMetadataSaverService.NewTokenMetadataWorker("defcfg", "~/.")
+	worker, err := tokenMetadataService.NewTokenMetadataWorker("", "~/.")
 	if err != nil {
 		panic(err)
 	}

@@ -1,10 +1,10 @@
-package tokenMetadataSaverService
+package tokenMetadataService
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/imgservice"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,7 @@ type TokenMetadataWorker struct {
 	mongoDB            *mongo.Client
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
-	imgSender          *RMQSender
+	imgSender          *imgservice.RMQSender
 }
 
 func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
@@ -30,6 +30,7 @@ func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 		cfg.MongoHost,
 		cfg.MongoDatabase,
 	)
+	fmt.Println(uri)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	return client, err
 }
@@ -44,7 +45,7 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, err
 	}
 
-	sender, err := NewRMQSender(configFileName, configPath)
+	imgSender, err := imgservice.NewRMQSender(configFileName, configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,8 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		mongoDB:            mongoDB,
 		ctx:                ctx,
 		erc721SchemaLoader: gojsonschema.NewStringLoader(erc721Schema),
-		imgSender:          sender,
+		imgSender:          imgSender,
+		cfg:                cfg,
 	}, nil
 }
 
@@ -122,12 +124,16 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 		return err
 	}
 
-	if err := tmw.insertTokenMetadata(tmw.ctx, tmw.mongoDB, rcvd.TokenID, metadataBytes); err != nil {
+	if err := tmw.upsertTokenMetadata(rcvd.TokenID, metadataBytes); err != nil {
 		return err
 	}
 
-	if isValid {
-		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, tmw.cfg.ImgQueueMaxPriority); err != nil {
+	if err = json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return err
+	}
+
+	if _, ok := metadata["image"]; ok && isValid {
+		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, tmw.cfg.ImgQueuePriority); err != nil {
 			return err
 		}
 	}
@@ -157,16 +163,18 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 	return result.Valid(), nil
 }
 
-func (tmw *TokenMetadataWorker) insertTokenMetadata(ctx context.Context, mongo *mongo.Client, tokenID string, metadata []byte) error {
-	var dataForInsert map[string]interface{}
-	if err := json.Unmarshal(metadata, &dataForInsert); err != nil {
+func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata []byte) error {
+	var data map[string]interface{}
+	if err := json.Unmarshal(metadata, &data); err != nil {
 		return err
 	}
-	dataForInsert["tokenID"] = tokenID
-	result, err := mongo.Database(common.MongoDatabase).Collection(common.MongoCollection).InsertOne(ctx, dataForInsert)
-	if err != nil {
+	data["tokenID"] = tokenID
+	dataForUpsert := map[string]interface{}{"$set": data}
+	isUpsert := true
+	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
+	if _, err := tmw.mongoDB.Database(tmw.cfg.MongoDatabase).Collection(tmw.cfg.MongoCollection).
+		UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
 		return err
 	}
-	fmt.Println(result.InsertedID)
 	return nil
 }

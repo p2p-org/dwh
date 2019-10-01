@@ -1,4 +1,4 @@
-package tokenMetadataSaverService
+package tokenMetadataService
 
 import (
 	"github.com/streadway/amqp"
