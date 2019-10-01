@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -22,6 +21,7 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
+	uriSender
 }
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {

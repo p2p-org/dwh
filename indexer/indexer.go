@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"sync"
 	"time"
@@ -34,7 +35,8 @@ type Indexer struct {
 	cancel    context.CancelFunc // Used to stop main processing loop.
 	cliCtx    cliCtx.Context     // Cosmos CLIContext, used to talk to node.
 	txDecoder sdk.TxDecoder
-	db        *gorm.DB                       // Database to store data to.
+	db        *gorm.DB // Database to store data to.
+	mongoDB   *mongo.Client
 	stateDB   *leveldb.DB                    // State database to keep indexer state.
 	handlers  map[string]handlers.MsgHandler // A map from module name to its handler (e.g., bank, ibc, marketplace, etc.)
 	cursor    *cursor                        // Indexer cursor (keeps track of the last processed message).
@@ -59,6 +61,7 @@ func NewIndexer(
 	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
+	mongoDB *mongo.Client,
 	opts ...IndexerOption,
 ) (*Indexer, error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -76,6 +79,7 @@ func NewIndexer(
 		db:        db,
 		stateDB:   stateDB,
 		cursor:    &cursor{},
+		mongoDB:   mongoDB,
 	}
 	for _, opt := range opts {
 		opt(idxr)
@@ -285,7 +289,7 @@ func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, 
 		return errors.New(errMsg)
 	}
 
-	if err := handler.Handle(m.db, msg, events...); err != nil {
+	if err := handler.Handle(m.ctx, m.mongoDB, m.db, msg, events...); err != nil {
 		failed, errMsg = true, fmt.Sprintf("failed to process message %+v: %v", msg, err)
 		return errors.New(errMsg)
 	}
