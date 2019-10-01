@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	worker, err := imgservice.NewImageProcessingWorker("defcfg", "~/.")
+	worker, err := imgservice.NewImageProcessingWorker("config", "/root/")
 	if err != nil {
 		panic(err)
 	}

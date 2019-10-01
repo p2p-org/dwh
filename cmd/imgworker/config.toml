@@ -1,0 +1,21 @@
+queue_scheme = "amqp"
+queue_addr = "192.0.0.1"
+queue_port = 5672
+queue_username = "guest"
+queue_password = "guest"
+
+img_queue_name = "dwh_img_tasks"
+img_max_priority = 10
+img_prefetch_count = 1
+
+store_addr = "http://localhost"
+store_port = 11535
+interpolation_method = 2
+
+[[resolutions]]
+width = 120
+height = 90
+
+[[resolutions]]
+width = 200
+height = 150

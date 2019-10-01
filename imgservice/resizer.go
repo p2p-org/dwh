@@ -30,7 +30,6 @@ type ImageProcessingWorker struct {
 
 func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessingWorker, error) {
 	cfg := ReadDwhImageServiceConfig(configFileName, configPath)
-
 	receiver, err := NewRMQReceiver(cfg)
 	if err != nil {
 		return nil, err
