@@ -26,10 +26,6 @@ type DwhQueueServiceConfig struct {
 	ImgQueueMaxPriority   int    `mapstructure:"img_max_priority"`
 	ImgQueuePrefetchCount int    `mapstructure:"img_prefetch_count"`
 
-	UriQueueName          string `mapstructure:"uri_queue_name"`
-	UriQueueMaxPriority   int    `mapstructure:"uri_max_priority"`
-	UriQueuePrefetchCount int    `mapstructure:"uri_prefetch_count"`
-
 	StoreAddr           string       `mapstructure:"store_addr"`
 	StorePort           int          `mapstructure:"store_port"`
 	Resolutions         []Resolution `mapstructure:"resolutions"`
@@ -47,10 +43,6 @@ func DefaultDwhQueueServiceConfig() *DwhQueueServiceConfig {
 		ImgQueueName:          "dwh_img_tasks",
 		ImgQueueMaxPriority:   10,
 		ImgQueuePrefetchCount: 1,
-
-		UriQueueName:          "dwh_uri_tasks",
-		UriQueueMaxPriority:   10,
-		UriQueuePrefetchCount: 1,
 
 		StoreAddr:           "http://localhost",
 		StorePort:           DefaultStorePort,

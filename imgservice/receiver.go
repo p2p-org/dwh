@@ -9,8 +9,6 @@ type RMQReceiver struct {
 	conn   *amqp.Connection
 	imgCh  *amqp.Channel
 	imgQ   *amqp.Queue
-	uriCh  *amqp.Channel
-	uriQ   *amqp.Queue
 }
 
 func NewRMQReceiver(cfg *DwhQueueServiceConfig) (*RMQReceiver, error) {
@@ -49,51 +47,17 @@ func NewRMQReceiver(cfg *DwhQueueServiceConfig) (*RMQReceiver, error) {
 		return nil, err
 	}
 
-	uriCh, err := conn.Channel()
-	if err != nil {
-		return nil, err
-	}
-
-	uriQArgs := map[string]interface{}{"x-max-priority": cfg.UriQueueMaxPriority}
-
-	uriQ, err := uriCh.QueueDeclare(
-		cfg.UriQueueName,
-		true,
-		false,
-		false,
-		false,
-		uriQArgs,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = uriCh.Qos(
-		cfg.UriQueuePrefetchCount,
-		0,
-		false,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	return &RMQReceiver{
 		config: cfg,
 		conn:   conn,
 		imgCh:  imgCh,
 		imgQ:   &imgQ,
-		uriCh:  uriCh,
-		uriQ:   &uriQ,
 	}, nil
 
 }
 
 func (rs *RMQReceiver) Closer() error {
 	if err := rs.imgCh.Close(); err != nil {
-		return err
-	}
-
-	if err := rs.uriCh.Close(); err != nil {
 		return err
 	}
 
@@ -106,19 +70,6 @@ func (rs *RMQReceiver) Closer() error {
 func (rs *RMQReceiver) GetImgMessageChan() (<-chan amqp.Delivery, error) {
 	msgs, err := rs.imgCh.Consume(
 		rs.imgQ.Name,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
-	)
-	return msgs, err
-}
-
-func (rs *RMQReceiver) GetUriMessageChan() (<-chan amqp.Delivery, error) {
-	msgs, err := rs.uriCh.Consume(
-		rs.uriQ.Name,
 		"",
 		false,
 		false,
