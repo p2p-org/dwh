@@ -10,10 +10,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const PORT = "11535"
+const localPath = "/tmp/dwh_store"
 
 func main() {
-	st := imgservice.NewImgStore(false)
+	st := imgservice.NewImgStore(localPath, false)
 
 	router := mux.NewRouter()
 	router.HandleFunc(imgservice.StoreImagePath, st.StoreHandler).Methods(http.MethodPost)
