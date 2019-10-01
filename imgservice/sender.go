@@ -59,7 +59,11 @@ func (rs *RMQSender) Closer() error {
 }
 
 func (rs *RMQSender) Publish(imgUrl, owner string, priority ImgQueuePriority) error {
-	ba, err := json.Marshal(&ImageInfo{Owner: owner, ImgUrl: imgUrl})
+	ba, err := json.Marshal(&ImageInfo{
+		Owner:   owner,
+		ImgUrl:  imgUrl,
+		ImgType: ImgTypeAvatar,
+	})
 	if err != nil {
 		return err
 	}

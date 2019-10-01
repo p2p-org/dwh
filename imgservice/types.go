@@ -9,18 +9,36 @@ const (
 	ForcedUpdatesPriority
 )
 
+const (
+	ImgTypeAvatar = "avatar"
+)
+
+const (
+	StoreImagePath  = "/imgstore/store_img"
+	LoadImagePath   = "/imgstore/load_img"
+	GetCheckSumPath = "/imgstore/get_check_sum"
+)
+
 type ImageInfo struct {
-	Owner  string `json:"owner"`
-	ImgUrl string `json:"img_url"`
+	Owner   string `json:"owner"`
+	ImgType string `json:"img_type"`
+	ImgUrl  string `json:"img_url"`
 }
 
-type ImagePostRequest struct {
+type ImageStoreRequest struct {
 	Owner      string `json:"owner"`
+	ImgType    string `json:"img_type"`
 	Resolution `json:"resolution"`
-	ImageBytes []byte `json:"image_bytes"`
+	ImageBytes []byte `json:"image_bytes"` // compressed
 }
 
-type ImagePostResponse struct {
-	Code  int    `json:"code"`
-	Error string `json:"error,omitempty"`
+type ImageCheckSumRequest struct {
+	Owner      string `json:"owner"`
+	ImgType    string `json:"img_type"`
+	Resolution `json:"resolution"`
+	MD5Sum     []byte `json:"md5_sum"`
+}
+
+type ImageCheckSumResponse struct {
+	ImageExists bool `json:"image_exists,omitempty"`
 }

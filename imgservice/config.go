@@ -10,8 +10,8 @@ import (
 const DefaultStorePort = 11535
 
 type Resolution struct {
-	Width  int64 `json:"width"`
-	Height int64 `json:"height"`
+	Width  uint `json:"width"`
+	Height uint `json:"height"`
 }
 
 type DwhImgServiceConfig struct {
@@ -44,9 +44,9 @@ func DefaultDwhImgServiceConfig() *DwhImgServiceConfig {
 		ImgQueueMaxPriority:   10,
 		ImgQueuePrefetchCount: 1,
 
-		StoreAddr:           "localhost",
+		StoreAddr:           "http://localhost",
 		StorePort:           DefaultStorePort,
-		Resolutions:         []Resolution{{640, 480}},
+		Resolutions:         []Resolution{{640, 480}, {440, 330}, {200, 150}, {120, 90}},
 		InterpolationMethod: 2,
 	}
 }

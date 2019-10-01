@@ -7,20 +7,18 @@ import (
 	"time"
 
 	"github.com/dgamingfoundation/dwh/imgservice"
-
 	"github.com/gorilla/mux"
 )
 
 const PORT = "11535"
 
 func main() {
-
-	st := imgservice.NewImgStore()
+	st := imgservice.NewImgStore(false)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/imgstore/store", st.StoreHandler).Methods(http.MethodPost)
-	router.HandleFunc("/imgstore/load", st.StoreHandler).Methods(http.MethodGet)
-	router.HandleFunc("/imgstore/get_check_sum", st.StoreHandler).Methods(http.MethodGet)
+	router.HandleFunc(imgservice.StoreImagePath, st.StoreHandler).Methods(http.MethodPost)
+	router.HandleFunc(imgservice.LoadImagePath, st.LoadHandler).Methods(http.MethodGet)
+	router.HandleFunc(imgservice.GetCheckSumPath, st.GetCheckSumHandler).Methods(http.MethodPost)
 
 	srv := http.Server{
 		Handler:           router,
@@ -30,6 +28,7 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
 	}
+
 	log.Println("listen and serve start")
 	log.Println(srv.ListenAndServe().Error())
 }
