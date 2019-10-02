@@ -2,6 +2,7 @@ package common
 
 import (
 	"strings"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
@@ -11,23 +12,60 @@ import (
 
 type NFT struct {
 	gorm.Model
-	OwnerAddress      string `gorm:"type:varchar(45)"`
+	Denom             string
 	TokenID           string `gorm:"unique;not null"`
+	OwnerAddress      string `gorm:"type:varchar(45)"`
 	TokenURI          string
 	Status            int
 	Price             string
 	SellerBeneficiary string
+
+	// Auction-related fields
+	BuyoutPrice  string
+	OpeningPrice string
+	TimeToSell   time.Duration
+
+	// Relations
+	Offers []Offer      `gorm:"ForeignKey:TokenID"`
+	Bids   []AuctionBid `gorm:"ForeignKey:TokenID"`
 }
 
-func NewNFTFromMarketplaceNFT(nft *types.NFTInfo) *NFT {
+func NewNFTFromMarketplaceNFT(tokenID, ownerAddress, tokenURI string) *NFT {
 	return &NFT{
-		TokenID:           nft.ID,
-		OwnerAddress:      nft.Owner.String(),
-		TokenURI:          nft.NFTMetaData.TokenURI,
-		Status:            int(nft.MPNFTInfo.Status),
-		Price:             nft.MPNFTInfo.GetPrice().String(),
-		SellerBeneficiary: nft.MPNFTInfo.SellerBeneficiary.String(),
+		TokenID:      tokenID,
+		OwnerAddress: ownerAddress,
+		TokenURI:     tokenURI,
+		Status:       int(types.NFTStatusDefault),
 	}
+}
+
+type Offer struct {
+	gorm.Model
+	OfferID               string
+	Buyer                 string
+	Price                 string
+	BuyerBeneficiary      string
+	BeneficiaryCommission string
+	TokenID               string
+}
+
+func NewOffer(offer *types.Offer, tokenID string) *Offer {
+	return &Offer{
+		OfferID:               offer.ID,
+		Buyer:                 offer.Buyer.String(),
+		BuyerBeneficiary:      offer.BuyerBeneficiary.String(),
+		BeneficiaryCommission: offer.BeneficiaryCommission,
+		TokenID:               tokenID,
+	}
+}
+
+type AuctionBid struct {
+	gorm.Model
+	BidderAddress         string
+	BidderBeneficiary     string
+	BeneficiaryCommission string
+	Price                 string
+	TokenID               string
 }
 
 type FungibleToken struct {

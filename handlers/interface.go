@@ -16,7 +16,7 @@ type MsgHandler interface {
 	// Handle is supposed to handle a message along with its associated events.
 	// NOTE:  only events that have the same type as the message
 	// can be associated with that message.
-	Handle(db *gorm.DB, msg sdk.Msg, events ...*abciTypes.Event) error
+	Handle(db *gorm.DB, msg sdk.Msg, events ...abciTypes.Event) error
 	// Setup is supposed to prepare the storage. For example, you can create necessary tables
 	// and indices for your module here.
 	Setup(db *gorm.DB) (*gorm.DB, error)
