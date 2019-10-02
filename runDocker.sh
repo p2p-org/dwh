@@ -27,4 +27,4 @@ docker build -t $docker_metadata_worker_name -f ./metaData.Dockerfile .
 
 rm -rf $cur_path/vendor
 
-docker-compose up
+docker-compose up --scale token_meta_data=2 --scale img_worker=2

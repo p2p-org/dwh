@@ -117,7 +117,7 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 	sum := md5.Sum(imgBytes)
 	req := ImageCheckSumRequest{
 		Owner:      info.Owner,
-		ImgType:    info.ImgType,
+		TokenId:    info.TokenId,
 		Resolution: resolution,
 		MD5Sum:     sum[:],
 	}
@@ -188,7 +188,7 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(originalImg image.Image, re
 
 	req := ImageStoreRequest{
 		Owner:      info.Owner,
-		ImgType:    info.ImgType,
+		TokenId:    info.TokenId,
 		Resolution: resolution,
 		ImageBytes: gzipBuf.Bytes(),
 	}

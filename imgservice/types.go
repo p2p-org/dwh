@@ -21,20 +21,20 @@ const (
 
 type ImageInfo struct {
 	Owner   string `json:"owner"`
-	ImgType string `json:"img_type"`
+	TokenId string `json:"token_id"`
 	ImgUrl  string `json:"img_url"`
 }
 
 type ImageStoreRequest struct {
 	Owner      string `json:"owner"`
-	ImgType    string `json:"img_type"`
+	TokenId    string `json:"token_id"`
 	Resolution `json:"resolution"`
 	ImageBytes []byte `json:"image_bytes"` // compressed
 }
 
 type ImageCheckSumRequest struct {
 	Owner      string `json:"owner"`
-	ImgType    string `json:"img_type"`
+	TokenId    string `json:"token_id"`
 	Resolution `json:"resolution"`
 	MD5Sum     []byte `json:"md5_sum"`
 }

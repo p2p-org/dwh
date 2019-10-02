@@ -58,11 +58,11 @@ func (rs *RMQSender) Closer() error {
 	return nil
 }
 
-func (rs *RMQSender) Publish(imgUrl, owner string, priority ImgQueuePriority) error {
+func (rs *RMQSender) Publish(imgUrl, owner, tokenId string, priority ImgQueuePriority) error {
 	ba, err := json.Marshal(&ImageInfo{
 		Owner:   owner,
 		ImgUrl:  imgUrl,
-		ImgType: ImgTypeAvatar,
+		TokenId: tokenId,
 	})
 	if err != nil {
 		return err

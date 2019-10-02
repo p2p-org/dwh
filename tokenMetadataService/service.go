@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	"github.com/dgamingfoundation/dwh/imgservice"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 type TokenMetadataWorker struct {
@@ -132,7 +133,7 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 	}
 
 	if _, ok := metadata["image"]; isValid && ok {
-		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, tmw.cfg.ImgQueuePriority); err != nil {
+		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, rcvd.TokenID, tmw.cfg.ImgQueuePriority); err != nil {
 			return err
 		}
 	}

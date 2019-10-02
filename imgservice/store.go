@@ -70,7 +70,7 @@ func (ims *ImgStore) storeImg(req *ImageStoreRequest) error {
 		}
 	}
 
-	name := fmt.Sprintf(FileNameFormat, req.Owner, req.ImgType, req.Resolution.Width, req.Resolution.Height)
+	name := fmt.Sprintf(FileNameFormat, req.Owner, req.TokenId, req.Resolution.Width, req.Resolution.Height)
 	filePrefix := fmt.Sprintf("%x", md5.Sum([]byte(name)))
 	names, err := filepath.Glob(path.Join(dirPath, filePrefix) + "*")
 	if err != nil {
@@ -260,7 +260,7 @@ func (ims *ImgStore) getCheckFile(req *ImageCheckSumRequest) bool {
 		return false
 	}
 
-	name := fmt.Sprintf(FileNameFormat, req.Owner, req.ImgType, req.Resolution.Width, req.Resolution.Height)
+	name := fmt.Sprintf(FileNameFormat, req.Owner, req.TokenId, req.Resolution.Width, req.Resolution.Height)
 	filename := fmt.Sprintf("%x+%x", md5.Sum([]byte(name)), req.MD5Sum)
 	fileFullName := path.Join(ims.storagePath, req.Owner, filename)
 
