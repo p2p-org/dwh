@@ -30,7 +30,6 @@ func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 		cfg.MongoHost,
 		cfg.MongoDatabase,
 	)
-	fmt.Println(uri)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	return client, err
 }
@@ -132,7 +131,7 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 		return err
 	}
 
-	if _, ok := metadata["image"]; ok && isValid {
+	if _, ok := metadata["image"]; isValid && ok {
 		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, tmw.cfg.ImgQueuePriority); err != nil {
 			return err
 		}
