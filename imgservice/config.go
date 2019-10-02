@@ -10,8 +10,8 @@ import (
 const DefaultStorePort = 11535
 
 type Resolution struct {
-	Width  uint `json:"width"`
-	Height uint `json:"height"`
+	Width  uint `mapstructure:"width",json:"width"`
+	Height uint `mapstructure:"height",json:"height"`
 }
 
 type DwhQueueServiceConfig struct {

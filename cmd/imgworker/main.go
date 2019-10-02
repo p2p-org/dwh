@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
-	worker, err := imgservice.NewImageProcessingWorker("defcfg", "~/.")
+	worker, err := imgservice.NewImageProcessingWorker("config", "/root/")
 	if err != nil {
 		panic(err)
 	}
 	defer worker.Closer()
 
-	log.Println("run worker")
+	log.Println("run image worker")
 	log.Println(worker.Run())
 }

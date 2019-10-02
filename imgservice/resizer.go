@@ -30,7 +30,6 @@ type ImageProcessingWorker struct {
 
 func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessingWorker, error) {
 	cfg := ReadDwhImageServiceConfig(configFileName, configPath)
-
 	receiver, err := NewRMQReceiver(cfg)
 	if err != nil {
 		return nil, err
@@ -43,6 +42,7 @@ func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessi
 		encoder:             png.Encoder{CompressionLevel: png.BestCompression},
 		client:              http.Client{Timeout: time.Second * 15},
 		receiver:            receiver,
+		cfg:                 cfg,
 	}, nil
 }
 
