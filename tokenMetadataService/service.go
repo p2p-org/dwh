@@ -124,11 +124,11 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 		return err
 	}
 
-	if err := tmw.upsertTokenMetadata(rcvd.TokenID, metadataBytes); err != nil {
+	if err = json.Unmarshal(metadataBytes, &metadata); err != nil {
 		return err
 	}
 
-	if err = json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err := tmw.upsertTokenMetadata(rcvd.TokenID, metadata); err != nil {
 		return err
 	}
 
@@ -163,13 +163,9 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 	return result.Valid(), nil
 }
 
-func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata []byte) error {
-	var data map[string]interface{}
-	if err := json.Unmarshal(metadata, &data); err != nil {
-		return err
-	}
-	data["tokenID"] = tokenID
-	dataForUpsert := map[string]interface{}{"$set": data}
+func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map[string]interface{}) error {
+	metadata["tokenID"] = tokenID
+	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
 	if _, err := tmw.mongoDB.Database(tmw.cfg.MongoDatabase).Collection(tmw.cfg.MongoCollection).
