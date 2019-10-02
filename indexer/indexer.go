@@ -40,9 +40,9 @@ type Indexer struct {
 	cursor    *cursor                        // Indexer cursor (keeps track of the last processed message).
 }
 
-type IndexerOption func(indexer *Indexer)
+type Option func(indexer *Indexer)
 
-func WithHandler(handler handlers.MsgHandler) IndexerOption {
+func WithHandler(handler handlers.MsgHandler) Option {
 	return func(indexer *Indexer) {
 		if indexer.handlers == nil {
 			indexer.handlers = map[string]handlers.MsgHandler{}
@@ -59,7 +59,7 @@ func NewIndexer(
 	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
-	opts ...IndexerOption,
+	opts ...Option,
 ) (*Indexer, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	stateDB, err := leveldb.OpenFile(cfg.StatePath, nil)
@@ -224,14 +224,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		}
 
 		for msgID, msg := range tx.GetMsgs() {
-			// Collect all message-related events from transaction result.
-			var events []*abciTypes.Event
-			for _, ev := range txRes.TxResult.GetEvents() {
-				if ev.Type == msg.Type() {
-					events = append(events, &ev)
-				}
-			}
-			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, events...); err != nil {
+			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, txRes.TxResult.GetEvents()...); err != nil {
 				if err == errCursor {
 					// This is a fatal error, indexer should be stopped.
 					return err
@@ -248,7 +241,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 	return nil
 }
 
-func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, events ...*abciTypes.Event) error {
+func (m *Indexer) processMsg(txID uint, txIndex uint32, msgID int, msg sdk.Msg, events ...abciTypes.Event) error {
 	if msgID < m.cursor.MsgID {
 		log.Debugf("old message (%d < %d), skipping", msgID, m.cursor.MsgID)
 		return nil
@@ -308,6 +301,10 @@ func (m *Indexer) Stop() {
 		log.Errorf("failed to close state database connection: %v", err)
 	}
 	m.cancel()
+
+	for _, h := range m.handlers {
+		h.Stop()
+	}
 }
 
 func (m *Indexer) updateCursor(height int64, txIndex uint32, msgID int) error {
