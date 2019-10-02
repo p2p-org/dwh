@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-docker_image_name=dwh_img_worker
+docker_image_worker_name=dwh_img_worker
+docker_metadata_worker_name=dwh_tmd_worker
 
 cur_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
@@ -20,6 +21,10 @@ GO111MODULE=off
 chmod 0777 ./go.sum
 chmod -R 0777 ./vendor
 
-docker build -t $docker_image_name -f ./worker.Dockerfile .
+docker build -t $docker_image_worker_name -f ./worker.Dockerfile .
+docker build -t $docker_metadata_worker_name -f ./metaData.Dockerfile .
+
+
 rm -rf $cur_path/vendor
 
+docker-compose up

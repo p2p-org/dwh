@@ -13,6 +13,6 @@ func main() {
 	}
 	defer worker.Closer()
 
-	log.Println("run worker")
+	log.Println("run image worker")
 	log.Println(worker.Run())
 }

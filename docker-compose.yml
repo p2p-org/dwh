@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  token_meta_data:
+    image: "dwh_tmd_worker:latest"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    network_mode: host
+
+  img_worker:
+    image: "dwh_img_worker:latest"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+    network_mode: host

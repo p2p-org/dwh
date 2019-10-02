@@ -4,6 +4,12 @@ queue_port = 5672
 queue_username = "guest"
 queue_password = "guest"
 
+uri_queue_name = "dwh_uri_tasks"
+uri_max_priority = 10
+uri_prefetch_count = 1
+
+img_queue_priority = 10
+
 img_queue_name = "dwh_img_tasks"
 img_max_priority = 10
 img_prefetch_count = 1
@@ -11,6 +17,12 @@ img_prefetch_count = 1
 store_addr = "http://localhost"
 store_port = 11535
 interpolation_method = 2
+
+mongo_user_name = "dgaming"
+mongo_user_pass = "dgaming"
+mongo_host = "localhost:27017"
+mongo_database = "dgaming"
+mongo_collection = "token_metadata"
 
 [[resolutions]]
 width = 120
