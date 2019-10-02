@@ -8,6 +8,13 @@ type TokenInfo struct {
 
 type URIQueuePriority uint8
 
+const (
+	RegularUpdatePriority URIQueuePriority = 1 + iota
+	TransferTriggeredPriority
+	FreshlyMadePriority
+	ForcedUpdatesPriority
+)
+
 const erc721Schema = `
 {
     "title": "Asset Metadata",
