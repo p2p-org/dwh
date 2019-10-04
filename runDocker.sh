@@ -21,9 +21,8 @@ GO111MODULE=off
 chmod 0777 ./go.sum
 chmod -R 0777 ./vendor
 
-docker build -t $docker_image_worker_name -f ./worker.Dockerfile .
-docker build -t $docker_metadata_worker_name -f ./metaData.Dockerfile .
-
+docker build -t $docker_image_worker_name --build-arg	APPNAME=imgworker .
+docker build -t $docker_metadata_worker_name --build-arg APPNAME=tokenMetadataWorker .
 
 rm -rf $cur_path/vendor
 
