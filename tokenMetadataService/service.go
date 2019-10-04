@@ -18,13 +18,14 @@ type TokenMetadataWorker struct {
 	receiver           *RMQReceiver
 	client             http.Client
 	cfg                *DwhQueueServiceConfig
-	mongoDB            *mongo.Collection
+	mongoClient        *mongo.Client
+	mongoCollection    *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
 	imgSender          *imgservice.RMQSender
 }
 
-func getMongoConnection(ctx context.Context, cfg *DwhQueueServiceConfig) (*mongo.Collection, error) {
+func getMongoClient(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		cfg.MongoUserName,
 		cfg.MongoUserPass,
@@ -32,13 +33,7 @@ func getMongoConnection(ctx context.Context, cfg *DwhQueueServiceConfig) (*mongo
 		cfg.MongoDatabase,
 	)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-	if err := client.Connect(ctx); err != nil {
-		return nil, err
-	}
-	return client.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection), err
+	return client, err
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
@@ -56,15 +51,22 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, err
 	}
 
-	mongoDB, err := getMongoConnection(ctx, cfg)
+	mongoClient, err := getMongoClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	if err = mongoClient.Connect(ctx); err != nil {
+		return nil, err
+	}
+
+	mongoCollection := mongoClient.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection)
+
 	return &TokenMetadataWorker{
 		client:             http.Client{Timeout: time.Second * 15},
 		receiver:           receiver,
-		mongoDB:            mongoDB,
+		mongoCollection:    mongoCollection,
+		mongoClient:        mongoClient,
 		ctx:                ctx,
 		erc721SchemaLoader: gojsonschema.NewStringLoader(erc721Schema),
 		imgSender:          imgSender,
@@ -80,7 +82,7 @@ func (tmw *TokenMetadataWorker) Closer() error {
 	if err = tmw.imgSender.Closer(); err != nil {
 		return err
 	}
-	if err := tmw.mongoDB.Database().Client().Disconnect(tmw.ctx); err != nil {
+	if err := tmw.mongoClient.Disconnect(tmw.ctx); err != nil {
 		return err
 	}
 	return nil
@@ -174,7 +176,7 @@ func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map
 	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
-	if _, err := tmw.mongoDB.UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
+	if _, err := tmw.mongoCollection.UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
 		return err
 	}
 	return nil
