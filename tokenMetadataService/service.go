@@ -18,13 +18,13 @@ type TokenMetadataWorker struct {
 	receiver           *RMQReceiver
 	client             http.Client
 	cfg                *DwhQueueServiceConfig
-	mongoDB            *mongo.Client
+	mongoDB            *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
 	imgSender          *imgservice.RMQSender
 }
 
-func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
+func getMongoConnection(ctx context.Context, cfg *DwhQueueServiceConfig) (*mongo.Collection, error) {
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		cfg.MongoUserName,
 		cfg.MongoUserPass,
@@ -32,7 +32,13 @@ func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 		cfg.MongoDatabase,
 	)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	return client, err
+	if err != nil {
+		return nil, err
+	}
+	if err := client.Connect(ctx); err != nil {
+		return nil, err
+	}
+	return client.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection), err
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
@@ -50,11 +56,8 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, err
 	}
 
-	mongoDB, err := getMongoDB(cfg)
+	mongoDB, err := getMongoConnection(ctx, cfg)
 	if err != nil {
-		return nil, err
-	}
-	if err := mongoDB.Connect(ctx); err != nil {
 		return nil, err
 	}
 
@@ -75,6 +78,9 @@ func (tmw *TokenMetadataWorker) Closer() error {
 		return err
 	}
 	if err = tmw.imgSender.Closer(); err != nil {
+		return err
+	}
+	if err := tmw.mongoDB.Database().Client().Disconnect(tmw.ctx); err != nil {
 		return err
 	}
 	return nil
@@ -168,8 +174,7 @@ func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map
 	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
-	if _, err := tmw.mongoDB.Database(tmw.cfg.MongoDatabase).Collection(tmw.cfg.MongoCollection).
-		UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
+	if _, err := tmw.mongoDB.UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
 		return err
 	}
 	return nil
