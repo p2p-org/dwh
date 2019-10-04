@@ -14,7 +14,9 @@ import (
 type MongoDaemon struct {
 	rmqReceiverSender *RMQReceiverSender
 	cfg               *DwhQueueServiceConfig
-	mongoDB           *mongo.Client
+	mongoClient       *mongo.Client
+	mongoDB           *mongo.Database
+	mongoCollection   *mongo.Collection
 	ctx               context.Context
 }
 
@@ -39,17 +41,20 @@ func NewMongoDaemon(configFileName, configPath string) (*MongoDaemon, error) {
 		return nil, err
 	}
 
-	mongoDB, err := getMongoDB(cfg)
+	mongoClient, err := getMongoDB(cfg)
 	if err != nil {
 		return nil, err
 	}
-	if err := mongoDB.Connect(ctx); err != nil {
+	if err := mongoClient.Connect(ctx); err != nil {
 		return nil, err
 	}
-
+	mongoDB := mongoClient.Database(cfg.MongoDatabase)
+	collection := mongoDB.Collection(cfg.MongoCollection)
 	return &MongoDaemon{
 		rmqReceiverSender: rs,
+		mongoClient:       mongoClient,
 		mongoDB:           mongoDB,
+		mongoCollection:   collection,
 		ctx:               ctx,
 		cfg:               cfg,
 	}, nil
@@ -91,5 +96,6 @@ func (md *MongoDaemon) Run() error {
 }
 
 func (md *MongoDaemon) processMessage(msg []byte) error {
+
 	return nil
 }
