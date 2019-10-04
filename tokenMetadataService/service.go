@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/dgamingfoundation/dwh/imgservice"
@@ -172,12 +173,32 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 }
 
 func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map[string]interface{}) error {
+	var (
+		oldMetaData map[string]interface{}
+		err         error
+	)
+
+	filter := map[string]interface{}{"tokenID": tokenID}
+
+	findOpts := []*options.FindOneOptions{{Projection: map[string]interface{}{"lastUpdated": 0, "lastChecked": 0, "_id": 0}}}
+	if err = tmw.mongoCollection.FindOne(tmw.ctx, filter, findOpts...).Decode(&oldMetaData); err != nil && err != mongo.ErrNoDocuments {
+		return err
+	}
+
 	metadata["tokenID"] = tokenID
+
+	if !reflect.DeepEqual(metadata, oldMetaData) {
+		metadata["lastUpdated"] = time.Now().UTC()
+	}
+	metadata["lastChecked"] = time.Now().UTC()
+
 	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
-	if _, err := tmw.mongoCollection.UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
+
+	if _, err = tmw.mongoCollection.UpdateOne(tmw.ctx, filter, dataForUpsert, opts...); err != nil {
 		return err
 	}
+
 	return nil
 }
