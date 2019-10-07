@@ -41,6 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to get env: %v", err)
 	}
+
 	idxrCfg := &indexer.Config{
 		StatePath: viper.GetString(common.StatePathFlag),
 	}

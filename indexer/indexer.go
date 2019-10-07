@@ -301,6 +301,10 @@ func (m *Indexer) Stop() {
 		log.Errorf("failed to close state database connection: %v", err)
 	}
 	m.cancel()
+
+	for _, h := range m.handlers {
+		h.Stop()
+	}
 }
 
 func (m *Indexer) updateCursor(height int64, txIndex uint32, msgID int) error {

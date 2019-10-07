@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
+	"github.com/dgamingfoundation/dwh/tokenMetadataService"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -23,14 +23,20 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
+	uriSender  *tokenMetadataService.RMQSender
 }
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
+	sender, err := tokenMetadataService.NewRMQSender("", "")
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
 	return &MarketplaceHandler{
 		cdc:        app.MakeCodec(),
 		cliCtx:     cliCtx,
 		msgMetrics: msgMetr,
+		uriSender:  sender,
 	}
 }
 
@@ -100,7 +106,25 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
+		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Recipient.String(), tokenMetadataService.FreshlyMadePriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
+	case nft.MsgEditNFTMetadata:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgEditNFTMetadata)
+		if _, err := m.findOrCreateUser(db, value.Sender); err != nil {
+			return err
+		}
+		db = db.Model(&common.NFT{}).Where("token_id = ?", value.ID).UpdateColumn(map[string]interface{}{
+			"TokenURI": value.TokenURI,
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgEditNFTMetadata): %v", db.Error)
+		}
+		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Sender.String(), tokenMetadataService.ForcedUpdatesPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)
 	case nft.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
 		if _, err := m.findOrCreateUser(db, value.Recipient); err != nil {
@@ -451,6 +475,11 @@ func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, 
 	return accGetter.GetAccount(addr)
 }
 
+func (m *MarketplaceHandler) Stop() {
+	if err := m.uriSender.Closer(); err != nil {
+		fmt.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
+	}
+}
 func (m *MarketplaceHandler) getEventAttr(events []abciTypes.Event, eventType, attrKey string) (string, bool) {
 	for _, event := range events {
 		if event.Type == eventType {

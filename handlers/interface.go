@@ -32,4 +32,6 @@ type MsgHandler interface {
 	// does not force developers to use ModuleName as RouterKey for registered
 	// messages (even though most modules do so).
 	RouterKeys() []string
+	// Stop called when indexer stops working
+	Stop()
 }
