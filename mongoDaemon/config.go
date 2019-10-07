@@ -26,6 +26,7 @@ type DwhQueueServiceConfig struct {
 	DaemonTaskQueueMaxPriority   int    `mapstructure:"daemon_task_max_priority"`
 	DaemonTaskQueuePrefetchCount int    `mapstructure:"daemon_task_prefetch_count"`
 	DaemonTTLSeconds             int    `mapstructure:"daemon_ttl_seconds"`
+	DaemonUpdatePercent          int64  `mapstructure:"daemon_update_percent"`
 
 	MongoUserName   string `mapstructure:"mongo_user_name"`
 	MongoUserPass   string `mapstructure:"mongo_user_pass"`
@@ -52,6 +53,8 @@ func DefaultDwhQueueServiceConfig() *DwhQueueServiceConfig {
 		DaemonDelayedQueueName:       "daemon_delayed_mongo_tasks",
 		DaemonTaskQueueMaxPriority:   10,
 		DaemonTaskQueuePrefetchCount: 1,
+		DaemonTTLSeconds:             60 * 1,
+		DaemonUpdatePercent:          20,
 
 		MongoUserName:   "dgaming",
 		MongoUserPass:   "dgaming",

@@ -40,6 +40,11 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		maxPriorityArgs,
 	)
 
+	maxPriorityAndTTLArgs := map[string]interface{}{
+		"x-max-priority": cfg.UriQueueMaxPriority,
+		"x-message-ttl":  cfg.DaemonTTLSeconds * 1000,
+	}
+
 	// Daemon task and delayed queues
 
 	delayedQArgs := map[string]interface{}{
@@ -50,7 +55,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 	}
 
 	uriQ, err := ch.QueueDeclare(
-		"",
+		cfg.UriQueueName,
 		true,
 		false,
 		false,
@@ -62,7 +67,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 	}
 
 	delayedQ, err := ch.QueueDeclare(
-		"",
+		cfg.DaemonDelayedQueueName,
 		true,
 		false,
 		false,
@@ -74,12 +79,12 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 	}
 
 	taskQ, err := ch.QueueDeclare(
-		"",
+		cfg.DaemonTaskQueueName,
 		true,
 		false,
 		false,
 		false,
-		maxPriorityArgs,
+		maxPriorityAndTTLArgs,
 	)
 	if err != nil {
 		return nil, err
@@ -200,7 +205,7 @@ func (rs *RMQReceiverSender) publishDelayed() error {
 		amqp.Publishing{
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "application/json",
-			Body:         MongoTaskInf,
+			Body:         []byte("ololo"),
 		})
 	return err
 }

@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
 	"time"
 
 	"github.com/dgamingfoundation/dwh/imgservice"
 	"github.com/xeipuuv/gojsonschema"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -62,6 +64,14 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 	}
 
 	mongoCollection := mongoClient.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection)
+	opts := options.CreateIndexes().SetMaxTime(10 * time.Second)
+
+	keys := bson.D{{Key: "dwhData.lastChecked", Value: 1}}
+	s, err := mongoCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: keys}, opts)
+	if err != nil {
+		return nil, err
+	}
+	log.Println("created index:", s)
 
 	return &TokenMetadataWorker{
 		client:             http.Client{Timeout: time.Second * 15},
@@ -133,11 +143,11 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 		return err
 	}
 
-	if err = json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err = bson.UnmarshalExtJSON(metadataBytes, false, &metadata); err != nil {
 		return err
 	}
 
-	if err := tmw.upsertTokenMetadata(rcvd.TokenID, metadata); err != nil {
+	if err := tmw.upsertTokenMetadata(&rcvd, metadata); err != nil {
 		return err
 	}
 
@@ -172,27 +182,31 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 	return result.Valid(), nil
 }
 
-func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map[string]interface{}) error {
+func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *TokenInfo, metadata map[string]interface{}) error {
 	var (
 		oldMetaData map[string]interface{}
 		err         error
 	)
 
-	filter := map[string]interface{}{"tokenID": tokenID}
+	filter := map[string]interface{}{"dwhData.tokenID": tokenInfo.TokenID}
 
-	findOpts := []*options.FindOneOptions{{Projection: map[string]interface{}{"lastUpdated": 0, "lastChecked": 0, "_id": 0}}}
+	findOpts := []*options.FindOneOptions{{Projection: map[string]interface{}{"dwhData": 0, "_id": 0}}}
 	if err = tmw.mongoCollection.FindOne(tmw.ctx, filter, findOpts...).Decode(&oldMetaData); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
+	tNow := time.Now().UTC()
 
-	metadata["tokenID"] = tokenID
-
+	dataForUpsert := make(map[string]interface{})
 	if !reflect.DeepEqual(metadata, oldMetaData) {
-		metadata["lastUpdated"] = time.Now().UTC()
+		dwhData := map[string]interface{}{"tokenID": tokenInfo.TokenID, "owner": tokenInfo.Owner, "url": tokenInfo.URL}
+		dwhData["lastUpdated"] = tNow
+		dwhData["lastChecked"] = tNow
+		metadata["dwhData"] = dwhData
+		dataForUpsert = map[string]interface{}{"$set": metadata}
+	} else {
+		dataForUpsert = map[string]interface{}{"$set": bson.M{"dwhData.lastChecked": tNow}}
 	}
-	metadata["lastChecked"] = time.Now().UTC()
 
-	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
 
