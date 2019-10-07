@@ -1,5 +1,7 @@
 FROM golang:1.12-alpine3.10
 
+ARG APPNAME
+
 RUN apk update
 RUN apk upgrade
 RUN apk add bash ca-certificates git libc-dev
@@ -11,10 +13,10 @@ ENV DWHPATH /go/src/github.com/dgamingfoundation/dwh/
 RUN mkdir -p $DWHPATH
 
 COPY . $DWHPATH
-COPY ./cmd/imgworker/config.toml /root/config.toml
+COPY ./config.toml /root/config.toml
 
-RUN go install $DWHPATH/cmd/imgworker
+RUN go install $DWHPATH/cmd/$APPNAME
 
 WORKDIR /root/
 
-ENTRYPOINT imgworker
+ENTRYPOINT $APPNAME

@@ -1,9 +1,9 @@
 package tokenMetadataService
 
 type TokenInfo struct {
-	TokenID string
-	URL     string
-	Owner   string
+	TokenID string `json:"token_id"`
+	URL     string `json:"url"`
+	Owner   string `json:"owner"`
 }
 
 type URIQueuePriority uint8
