@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/dgamingfoundation/dwh/imgservice"
@@ -18,13 +19,14 @@ type TokenMetadataWorker struct {
 	receiver           *RMQReceiver
 	client             http.Client
 	cfg                *DwhQueueServiceConfig
-	mongoDB            *mongo.Client
+	mongoClient        *mongo.Client
+	mongoCollection    *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
 	imgSender          *imgservice.RMQSender
 }
 
-func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
+func getMongoClient(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		cfg.MongoUserName,
 		cfg.MongoUserPass,
@@ -50,18 +52,22 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, err
 	}
 
-	mongoDB, err := getMongoDB(cfg)
+	mongoClient, err := getMongoClient(cfg)
 	if err != nil {
 		return nil, err
 	}
-	if err := mongoDB.Connect(ctx); err != nil {
+
+	if err = mongoClient.Connect(ctx); err != nil {
 		return nil, err
 	}
+
+	mongoCollection := mongoClient.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection)
 
 	return &TokenMetadataWorker{
 		client:             http.Client{Timeout: time.Second * 15},
 		receiver:           receiver,
-		mongoDB:            mongoDB,
+		mongoCollection:    mongoCollection,
+		mongoClient:        mongoClient,
 		ctx:                ctx,
 		erc721SchemaLoader: gojsonschema.NewStringLoader(erc721Schema),
 		imgSender:          imgSender,
@@ -75,6 +81,9 @@ func (tmw *TokenMetadataWorker) Closer() error {
 		return err
 	}
 	if err = tmw.imgSender.Closer(); err != nil {
+		return err
+	}
+	if err := tmw.mongoClient.Disconnect(tmw.ctx); err != nil {
 		return err
 	}
 	return nil
@@ -164,13 +173,32 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 }
 
 func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenID string, metadata map[string]interface{}) error {
+	var (
+		oldMetaData map[string]interface{}
+		err         error
+	)
+
+	filter := map[string]interface{}{"tokenID": tokenID}
+
+	findOpts := []*options.FindOneOptions{{Projection: map[string]interface{}{"lastUpdated": 0, "lastChecked": 0, "_id": 0}}}
+	if err = tmw.mongoCollection.FindOne(tmw.ctx, filter, findOpts...).Decode(&oldMetaData); err != nil && err != mongo.ErrNoDocuments {
+		return err
+	}
+
 	metadata["tokenID"] = tokenID
+
+	if !reflect.DeepEqual(metadata, oldMetaData) {
+		metadata["lastUpdated"] = time.Now().UTC()
+	}
+	metadata["lastChecked"] = time.Now().UTC()
+
 	dataForUpsert := map[string]interface{}{"$set": metadata}
 	isUpsert := true
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
-	if _, err := tmw.mongoDB.Database(tmw.cfg.MongoDatabase).Collection(tmw.cfg.MongoCollection).
-		UpdateOne(tmw.ctx, map[string]interface{}{"tokenID": tokenID}, dataForUpsert, opts...); err != nil {
+
+	if _, err = tmw.mongoCollection.UpdateOne(tmw.ctx, filter, dataForUpsert, opts...); err != nil {
 		return err
 	}
+
 	return nil
 }
