@@ -156,9 +156,8 @@ func (md *MongoDaemon) processMessage(msg []byte) error {
 
 		filter := map[string]interface{}{"_id": id}
 		dataForUpdate := map[string]interface{}{"$set": bson.M{"dwhData.lastChecked": tNow}}
-		isUpsert := true
-		opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
-		res, err := md.mongoCollection.UpdateOne(md.ctx, filter, dataForUpdate, opts...)
+
+		res, err := md.mongoCollection.UpdateOne(md.ctx, filter, dataForUpdate)
 		if err != nil {
 			return err
 		}
