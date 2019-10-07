@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -133,7 +134,7 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 		return err
 	}
 
-	if err = json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err = bson.UnmarshalExtJSON(metadataBytes, false, &metadata); err != nil {
 		return err
 	}
 
