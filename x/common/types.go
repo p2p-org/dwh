@@ -1,4 +1,4 @@
-package mongoDaemon
+package dwh_common
 
 type ImgQueuePriority uint8
 
@@ -9,10 +9,13 @@ const (
 	ForcedUpdatesPriority
 )
 
-type TokenInfo struct {
-	TokenID string `json:"token_id"`
-	URL     string `json:"url"`
-	Owner   string `json:"owner"`
+type Resolution struct {
+	Width  uint `mapstructure:"width",json:"width"`
+	Height uint `mapstructure:"height",json:"height"`
 }
 
-var MongoTaskInf = make([]byte, 0)
+type TaskInfo struct {
+	Owner   string `json:"owner"`
+	TokenID string `json:"token_id"`
+	URL     string `json:"url"`
+}

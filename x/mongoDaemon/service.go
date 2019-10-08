@@ -9,6 +9,8 @@ import (
 	"log"
 	"time"
 
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	"go.mongodb.org/mongo-driver/bson"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,14 +19,14 @@ import (
 
 type MongoDaemon struct {
 	rmqReceiverSender *RMQReceiverSender
-	cfg               *DwhQueueServiceConfig
+	cfg               *dwh_common.DwhCommonServiceConfig
 	mongoClient       *mongo.Client
 	mongoDB           *mongo.Database
 	mongoCollection   *mongo.Collection
 	ctx               context.Context
 }
 
-func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
+func getMongoDB(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		cfg.MongoUserName,
 		cfg.MongoUserPass,
@@ -36,7 +38,7 @@ func getMongoDB(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 }
 
 func NewMongoDaemon(configFileName, configPath string) (*MongoDaemon, error) {
-	cfg := ReadDwhQueueServiceConfig(configFileName, configPath)
+	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 
 	ctx := context.Background()
 

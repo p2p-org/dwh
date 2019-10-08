@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/dgamingfoundation/dwh/imgservice"
+	"github.com/dgamingfoundation/dwh/x/imgresizer"
 )
 
 func main() {
-	worker, err := imgservice.NewImageProcessingWorker("config", "/root/")
+	worker, err := imgresizer.NewImageProcessingWorker("config", "/root/")
 	if err != nil {
 		panic(err)
 	}

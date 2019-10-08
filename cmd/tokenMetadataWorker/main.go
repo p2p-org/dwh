@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/dgamingfoundation/dwh/tokenMetadataService"
+	"github.com/dgamingfoundation/dwh/x/tokenMetadataService"
 )
 
 func main() {

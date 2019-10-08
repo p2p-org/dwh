@@ -4,13 +4,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
-	"github.com/dgamingfoundation/dwh/tokenMetadataService"
+	"github.com/dgamingfoundation/dwh/x/tokenMetadataService"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -106,7 +109,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Recipient.String(), tokenMetadataService.FreshlyMadePriority); err != nil {
+		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Recipient.String(), dwh_common.FreshlyMadePriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
@@ -121,7 +124,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgEditNFTMetadata): %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Sender.String(), tokenMetadataService.ForcedUpdatesPriority); err != nil {
+		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Sender.String(), dwh_common.ForcedUpdatesPriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)

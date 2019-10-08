@@ -10,7 +10,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/dgamingfoundation/dwh/imgservice"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	"github.com/dgamingfoundation/dwh/x/imgresizer"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,15 +21,15 @@ import (
 type TokenMetadataWorker struct {
 	receiver           *RMQReceiver
 	client             http.Client
-	cfg                *DwhQueueServiceConfig
+	cfg                *dwh_common.DwhCommonServiceConfig
 	mongoClient        *mongo.Client
 	mongoCollection    *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
-	imgSender          *imgservice.RMQSender
+	imgSender          *imgresizer.RMQSender
 }
 
-func getMongoClient(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
+func getMongoClient(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
 	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
 		cfg.MongoUserName,
 		cfg.MongoUserPass,
@@ -40,7 +41,7 @@ func getMongoClient(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
-	cfg := ReadDwhTokenMetadataServiceConfig(configFileName, configPath)
+	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 
 	ctx := context.Background()
 
@@ -49,7 +50,7 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, err
 	}
 
-	imgSender, err := imgservice.NewRMQSender(configFileName, configPath)
+	imgSender, err := imgresizer.NewRMQSender(configFileName, configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func (tmw *TokenMetadataWorker) Run() error {
 	}
 
 	for d := range msgs {
-		err = tmw.processMessage(d.Body)
+		err = tmw.processMessage(d.Body, dwh_common.ImgQueuePriority(d.Priority))
 		if err != nil {
 			fmt.Println("failed to process rabbitMQ message: ", err)
 			continue
@@ -122,9 +123,9 @@ func (tmw *TokenMetadataWorker) Run() error {
 	return nil
 }
 
-func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
+func (tmw *TokenMetadataWorker) processMessage(msg []byte, priority dwh_common.ImgQueuePriority) error {
 	var (
-		rcvd     TokenInfo
+		rcvd     dwh_common.TaskInfo
 		metadata map[string]interface{}
 	)
 
@@ -152,7 +153,7 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 	}
 
 	if _, ok := metadata["image"]; isValid && ok {
-		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, rcvd.TokenID, tmw.cfg.ImgQueuePriority); err != nil {
+		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, rcvd.TokenID, priority); err != nil {
 			return err
 		}
 	}
@@ -182,7 +183,7 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 	return result.Valid(), nil
 }
 
-func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *TokenInfo, metadata map[string]interface{}) error {
+func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *dwh_common.TaskInfo, metadata map[string]interface{}) error {
 	var (
 		oldMetaData map[string]interface{}
 		err         error

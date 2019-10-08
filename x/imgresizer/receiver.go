@@ -1,18 +1,19 @@
-package imgservice
+package imgresizer
 
 import (
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/streadway/amqp"
 )
 
 type RMQReceiver struct {
-	config *DwhQueueServiceConfig
+	config *dwh_common.DwhCommonServiceConfig
 	conn   *amqp.Connection
 	imgCh  *amqp.Channel
 	imgQ   *amqp.Queue
 }
 
-func NewRMQReceiver(cfg *DwhQueueServiceConfig) (*RMQReceiver, error) {
-	addr := QueueAddrStringFromConfig(cfg)
+func NewRMQReceiver(cfg *dwh_common.DwhCommonServiceConfig) (*RMQReceiver, error) {
+	addr := dwh_common.QueueAddrStringFromConfig(cfg)
 
 	conn, err := amqp.Dial(addr)
 	if err != nil {

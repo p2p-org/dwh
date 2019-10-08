@@ -1,21 +1,23 @@
-package imgservice
+package imgresizer
 
 import (
 	"encoding/json"
+
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 
 	"github.com/streadway/amqp"
 )
 
 type RMQSender struct {
-	config *DwhQueueServiceConfig
+	config *dwh_common.DwhCommonServiceConfig
 	conn   *amqp.Connection
 	ch     *amqp.Channel
 	imgQ   *amqp.Queue
 }
 
 func NewRMQSender(configFileName, configPath string) (*RMQSender, error) {
-	rCfg := ReadDwhImageServiceConfig(configFileName, configPath)
-	u := QueueAddrStringFromConfig(rCfg)
+	rCfg := dwh_common.ReadCommonConfig(configFileName, configPath)
+	u := dwh_common.QueueAddrStringFromConfig(rCfg)
 
 	conn, err := amqp.Dial(u)
 	if err != nil {
@@ -58,11 +60,11 @@ func (rs *RMQSender) Closer() error {
 	return nil
 }
 
-func (rs *RMQSender) Publish(imgUrl, owner, tokenId string, priority ImgQueuePriority) error {
-	ba, err := json.Marshal(&ImageInfo{
+func (rs *RMQSender) Publish(imgUrl, owner, tokenId string, priority dwh_common.ImgQueuePriority) error {
+	ba, err := json.Marshal(&dwh_common.TaskInfo{
 		Owner:   owner,
-		ImgUrl:  imgUrl,
-		TokenId: tokenId,
+		URL:     imgUrl,
+		TokenID: tokenId,
 	})
 	if err != nil {
 		return err

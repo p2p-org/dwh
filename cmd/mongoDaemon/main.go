@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/dgamingfoundation/dwh/mongoDaemon"
+	"github.com/dgamingfoundation/dwh/x/mongoDaemon"
 )
 
 func main() {

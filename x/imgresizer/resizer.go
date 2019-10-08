@@ -1,4 +1,4 @@
-package imgservice
+package imgresizer
 
 import (
 	"bytes"
@@ -15,21 +15,23 @@ import (
 	"net/http"
 	"time"
 
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	"github.com/nfnt/resize"
 )
 
 type ImageProcessingWorker struct {
 	receiver            *RMQReceiver
 	interpolationMethod resize.InterpolationFunction
-	resolutions         []Resolution
+	resolutions         []dwh_common.Resolution
 	destination         string
 	encoder             png.Encoder
 	client              http.Client
-	cfg                 *DwhQueueServiceConfig
+	cfg                 *dwh_common.DwhCommonServiceConfig
 }
 
 func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessingWorker, error) {
-	cfg := ReadDwhImageServiceConfig(configFileName, configPath)
+	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 	receiver, err := NewRMQReceiver(cfg)
 	if err != nil {
 		return nil, err
@@ -37,7 +39,7 @@ func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessi
 
 	return &ImageProcessingWorker{
 		resolutions:         cfg.Resolutions,
-		destination:         fmt.Sprintf("%s:%d", cfg.StoreAddr, cfg.StorePort),
+		destination:         fmt.Sprintf("%s:%d", cfg.StorageAddr, cfg.StoragePort),
 		interpolationMethod: resize.InterpolationFunction(cfg.InterpolationMethod),
 		encoder:             png.Encoder{CompressionLevel: png.BestCompression},
 		client:              http.Client{Timeout: time.Second * 15},
@@ -78,13 +80,13 @@ func (irw *ImageProcessingWorker) Run() error {
 }
 
 func (irw *ImageProcessingWorker) processMessage(msg []byte) error {
-	var rcvd ImageInfo
+	var rcvd dwh_common.TaskInfo
 	err := json.Unmarshal(msg, &rcvd)
 	if err != nil {
 		return fmt.Errorf("unmarshal error: %v", err)
 	}
 
-	originalImg, err := irw.getImage(rcvd.ImgUrl)
+	originalImg, err := irw.getImage(rcvd.URL)
 	if err != nil {
 		return fmt.Errorf("get image error: %v", err)
 	}
@@ -113,11 +115,11 @@ func (irw *ImageProcessingWorker) getImage(imgUrl string) (image.Image, error) {
 	return img, nil
 }
 
-func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution Resolution, info *ImageInfo) (bool, error) {
+func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution dwh_common.Resolution, info *dwh_common.TaskInfo) (bool, error) {
 	sum := md5.Sum(imgBytes)
-	req := ImageCheckSumRequest{
+	req := dwh_common.ImageCheckSumRequest{
 		Owner:      info.Owner,
-		TokenId:    info.TokenId,
+		TokenId:    info.TokenID,
 		Resolution: resolution,
 		MD5Sum:     sum[:],
 	}
@@ -128,7 +130,7 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 	}
 	dataBuf := bytes.NewReader(ba)
 
-	resp, err := irw.client.Post(irw.destination+GetCheckSumPath, "application/json", dataBuf)
+	resp, err := irw.client.Post(irw.destination+dwh_common.GetCheckSumPath, "application/json", dataBuf)
 	if err != nil {
 		return false, err
 	}
@@ -143,7 +145,7 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 		return false, err
 	}
 
-	var repl ImageCheckSumResponse
+	var repl dwh_common.ImageCheckSumResponse
 	err = json.Unmarshal(ba, &repl)
 	if err != nil {
 		return false, err
@@ -152,7 +154,11 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 	return repl.ImageExists, nil
 }
 
-func (irw *ImageProcessingWorker) resizeAndSendImage(originalImg image.Image, resolution Resolution, info *ImageInfo) error {
+func (irw *ImageProcessingWorker) resizeAndSendImage(
+	originalImg image.Image,
+	resolution dwh_common.Resolution,
+	info *dwh_common.TaskInfo,
+) error {
 	img := resize.Resize(resolution.Width, resolution.Height, originalImg, irw.interpolationMethod)
 	buf := new(bytes.Buffer)
 
@@ -186,9 +192,9 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(originalImg image.Image, re
 		return fmt.Errorf("gzip close error: %v", err)
 	}
 
-	req := ImageStoreRequest{
+	req := dwh_common.ImageStoreRequest{
 		Owner:      info.Owner,
-		TokenId:    info.TokenId,
+		TokenId:    info.TokenID,
 		Resolution: resolution,
 		ImageBytes: gzipBuf.Bytes(),
 	}
@@ -200,7 +206,7 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(originalImg image.Image, re
 
 	dataBuf := bytes.NewReader(ba)
 
-	resp, err := irw.client.Post(irw.destination+StoreImagePath, "application/json", dataBuf)
+	resp, err := irw.client.Post(irw.destination+dwh_common.StoreImagePath, "application/json", dataBuf)
 	if err != nil {
 		return fmt.Errorf("image store post error: %v", err)
 	}

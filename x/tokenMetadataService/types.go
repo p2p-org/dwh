@@ -1,20 +1,5 @@
 package tokenMetadataService
 
-type TokenInfo struct {
-	TokenID string `json:"token_id"`
-	URL     string `json:"url"`
-	Owner   string `json:"owner"`
-}
-
-type URIQueuePriority uint8
-
-const (
-	RegularUpdatePriority URIQueuePriority = 1 + iota
-	TransferTriggeredPriority
-	FreshlyMadePriority
-	ForcedUpdatesPriority
-)
-
 const erc721Schema = `
 {
     "title": "Asset Metadata",

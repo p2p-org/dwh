@@ -6,8 +6,8 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/dgamingfoundation/dwh/common"
-	"github.com/dgamingfoundation/dwh/handlers"
-	"github.com/dgamingfoundation/dwh/indexer"
+	"github.com/dgamingfoundation/dwh/x/indexer"
+	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"

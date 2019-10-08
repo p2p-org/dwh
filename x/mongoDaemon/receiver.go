@@ -3,11 +3,13 @@ package mongoDaemon
 import (
 	"encoding/json"
 
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	"github.com/streadway/amqp"
 )
 
 type RMQReceiverSender struct {
-	config   *DwhQueueServiceConfig
+	config   *dwh_common.DwhCommonServiceConfig
 	conn     *amqp.Connection
 	ch       *amqp.Channel
 	delayedQ *amqp.Queue
@@ -15,8 +17,8 @@ type RMQReceiverSender struct {
 	uriQ     *amqp.Queue
 }
 
-func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error) {
-	addr := QueueAddrStringFromConfig(cfg)
+func NewRMQReceiverSender(cfg *dwh_common.DwhCommonServiceConfig) (*RMQReceiverSender, error) {
+	addr := dwh_common.QueueAddrStringFromConfig(cfg)
 
 	conn, err := amqp.Dial(addr)
 	if err != nil {
@@ -173,7 +175,7 @@ func (rs *RMQReceiverSender) GetTaskMessageChan() (<-chan amqp.Delivery, error) 
 }
 
 func (rs *RMQReceiverSender) PublishUriTask(url, owner, tokenId string) error {
-	ba, err := json.Marshal(&TokenInfo{
+	ba, err := json.Marshal(&dwh_common.TaskInfo{
 		TokenID: tokenId,
 		URL:     url,
 		Owner:   owner,
@@ -191,7 +193,7 @@ func (rs *RMQReceiverSender) PublishUriTask(url, owner, tokenId string) error {
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "application/json",
 			Body:         ba,
-			Priority:     uint8(RegularUpdatePriority),
+			Priority:     uint8(dwh_common.RegularUpdatePriority),
 		})
 	return err
 }

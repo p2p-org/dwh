@@ -1,33 +1,50 @@
-queue_scheme = "amqp"
-queue_addr = "127.0.0.1"
-queue_port = 5672
-queue_username = "guest"
-queue_password = "guest"
+[indexer]
+	state_path = "./indexer.state"
 
-uri_queue_name = "dwh_uri_tasks"
-uri_max_priority = 10
-uri_prefetch_count = 1
+[rabbitmq]
+	queue_scheme = "amqp"
+	queue_addr = "127.0.0.1"
+	queue_port = 5672
+	queue_username = "guest"
+	queue_password = "guest"
+	exchange_name = "dwh_direct_exchange"
 
-img_queue_priority = 10
+[img_resizer_service]
+	img_queue_name = "dwh_img_tasks"
+	img_max_priority = 10
+	img_prefetch_count = 1
+	interpolation_method = 2
+	[[resolutions]]
+		width = 120
+		height = 90
 
-img_queue_name = "dwh_img_tasks"
-img_max_priority = 10
-img_prefetch_count = 1
+	[[resolutions]]
+		width = 200
+		height = 150
 
-store_addr = "http://localhost"
-store_port = 11535
-interpolation_method = 2
+[img_storage_service]
+	storage_addr = "http://localhost"
+    storage_port = 11535
+    storage_is_compressed = false
+    storage_path = "/root/dwh_storage"
 
-mongo_user_name = "dgaming"
-mongo_user_pass = "dgaming"
-mongo_host = "localhost:27017"
-mongo_database = "dgaming"
-mongo_collection = "token_metadata"
+[token_metadata_service]
+	uri_queue_name = "dwh_uri_tasks"
+	uri_max_priority = 10
+	uri_prefetch_count = 1
 
-[[resolutions]]
-width = 120
-height = 90
+[mongo_daemon_service]
+	daemon_task_queue_name = "daemon_mongo_tasks"
+	daemon_delayed_task_queue_name = "daemon_delayed_mongo_tasks"
+	daemon_task_max_priority = 10
+	daemon_task_prefetch_count = 1
+	# 60*60*6 seconds == 6 hours
+	daemon_ttl_seconds = 21600
+	daemon_update_percent = 20
 
-[[resolutions]]
-width = 200
-height = 150
+[mongo_db]
+	mongo_user_name = "dgaming"
+	mongo_user_pass = "dgaming"
+	mongo_host = "localhost:27017"
+	mongo_database = "dgaming"
+	mongo_collection = "token_metadata"

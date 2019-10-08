@@ -6,23 +6,25 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dgamingfoundation/dwh/imgservice"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	"github.com/dgamingfoundation/dwh/x/imgstore"
+
 	"github.com/gorilla/mux"
 )
 
-const localPath = "/tmp/dwh_store"
-
 func main() {
-	st := imgservice.NewImgStore(localPath, false)
+	cfg := dwh_common.ReadCommonConfig("config", "/root/")
+
+	st := imgstore.NewImgStore(cfg.StorageDiskPath, cfg.StorageCompressedOption)
 
 	router := mux.NewRouter()
-	router.HandleFunc(imgservice.StoreImagePath, st.StoreHandler).Methods(http.MethodPost)
-	router.HandleFunc(imgservice.LoadImagePath, st.LoadHandler).Methods(http.MethodGet)
-	router.HandleFunc(imgservice.GetCheckSumPath, st.GetCheckSumHandler).Methods(http.MethodPost)
+	router.HandleFunc(dwh_common.StoreImagePath, st.StoreHandler).Methods(http.MethodPost)
+	router.HandleFunc(dwh_common.LoadImagePath, st.LoadHandler).Methods(http.MethodGet)
+	router.HandleFunc(dwh_common.GetCheckSumPath, st.GetCheckSumHandler).Methods(http.MethodPost)
 
 	srv := http.Server{
 		Handler:           router,
-		Addr:              fmt.Sprintf("%s:%d", "0.0.0.0", imgservice.DefaultStorePort),
+		Addr:              fmt.Sprintf("%s:%d", cfg.StorageAddr, cfg.StoragePort),
 		WriteTimeout:      15 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,
