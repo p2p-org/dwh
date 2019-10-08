@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	cliCtx "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
@@ -55,7 +57,7 @@ func WithHandler(handler handlers.MsgHandler) Option {
 
 func NewIndexer(
 	ctx context.Context,
-	cfg *Config,
+	cfg *dwh_common.DwhCommonServiceConfig,
 	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,

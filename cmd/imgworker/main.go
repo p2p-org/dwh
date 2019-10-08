@@ -3,11 +3,13 @@ package main
 import (
 	"log"
 
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+
 	"github.com/dgamingfoundation/dwh/x/imgresizer"
 )
 
 func main() {
-	worker, err := imgresizer.NewImageProcessingWorker("config", "/root/")
+	worker, err := imgresizer.NewImageProcessingWorker(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
 	if err != nil {
 		panic(err)
 	}

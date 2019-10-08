@@ -1,8 +1,6 @@
-package imgstore
+package imgstorage
 
 import (
-	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +10,7 @@ import (
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 )
 
-func (ims *ImgStore) StoreHandler(w http.ResponseWriter, r *http.Request) {
+func (ims *ImgStorage) StoreHandler(w http.ResponseWriter, r *http.Request) {
 	reqB, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -33,7 +31,7 @@ func (ims *ImgStore) StoreHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (ims *ImgStore) LoadHandler(w http.ResponseWriter, r *http.Request) {
+func (ims *ImgStorage) LoadHandler(w http.ResponseWriter, r *http.Request) {
 	owner := r.FormValue("owner")
 	imgType := r.FormValue("img_type")
 	widthString := r.FormValue("width")
@@ -51,44 +49,17 @@ func (ims *ImgStore) LoadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ba, err := ims.loadImg(owner, imgType, width, height)
+	fileName, err := ims.loadImg(owner, imgType, width, height)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("img not found"))
 		return
 	}
 
-	var bytesToLoad []byte
-	if ims.optionStoreCompressed {
-		buf := bytes.NewBuffer(ba)
-		zr, err := gzip.NewReader(buf)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytesToLoad, err = ioutil.ReadAll(zr)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if err := zr.Close(); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	} else {
-		bytesToLoad = ba
-	}
-
-	_, err = w.Write(bytesToLoad)
-	if err != nil {
-		fmt.Println("load img write response error:", err)
-		return
-	}
+	http.ServeFile(w, r, fileName)
 }
 
-func (ims *ImgStore) GetCheckSumHandler(w http.ResponseWriter, r *http.Request) {
+func (ims *ImgStorage) GetCheckSumHandler(w http.ResponseWriter, r *http.Request) {
 	reqB, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

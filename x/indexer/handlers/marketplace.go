@@ -27,12 +27,9 @@ type MarketplaceHandler struct {
 	uriSender  *dwh_common.RMQSender
 }
 
-const defaultCfgName = "config"
-const defaultCfgPath = "/root/"
-
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
-	cfg := dwh_common.ReadCommonConfig(defaultCfgName, defaultCfgPath)
+	cfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
 
 	sender, err := dwh_common.NewRMQSender(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority)
 	if err != nil {
@@ -112,7 +109,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Recipient.String(), dwh_common.FreshlyMadePriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Recipient.String(), value.ID, dwh_common.FreshlyMadePriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
@@ -127,7 +124,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgEditNFTMetadata): %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Sender.String(), dwh_common.ForcedUpdatesPriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Sender.String(), value.ID, dwh_common.ForcedUpdatesPriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)

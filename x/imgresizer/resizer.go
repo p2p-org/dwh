@@ -74,12 +74,12 @@ func (irw *ImageProcessingWorker) Run() error {
 			fmt.Println("failed to ack to rabbitMQ: ", err)
 			continue
 		}
-
 	}
 	return nil
 }
 
 func (irw *ImageProcessingWorker) processMessage(msg []byte) error {
+	fmt.Println("Got message", string(msg))
 	var rcvd dwh_common.TaskInfo
 	err := json.Unmarshal(msg, &rcvd)
 	if err != nil {

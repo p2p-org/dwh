@@ -1,4 +1,4 @@
-package imgstore
+package imgstorage
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 )
 
-func (ims *ImgStore) storeImg(req *dwh_common.ImageStoreRequest) error {
+func (ims *ImgStorage) storeImg(req *dwh_common.ImageStoreRequest) error {
 	dirPath := path.Join(ims.storagePath, req.Owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
@@ -83,17 +83,14 @@ func (ims *ImgStore) storeImg(req *dwh_common.ImageStoreRequest) error {
 	return nil
 }
 
-func (ims *ImgStore) loadImg(owner, imgType string, width, height int) ([]byte, error) {
+func (ims *ImgStorage) loadImg(owner, imgType string, width, height int) (string, error) {
 	dirPath := path.Join(ims.storagePath, owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
-		err := os.MkdirAll(dirPath, 0777)
-		if err != nil {
-			return nil, fmt.Errorf("dir not found error: %v", err)
-		}
+		return "", fmt.Errorf("dir not found error: %v", err)
 	}
 	if !inf.IsDir() {
-		return nil, fmt.Errorf("dir not found")
+		return "", fmt.Errorf("error: dir not found")
 	}
 
 	name := fmt.Sprintf(FileNameFormat, owner, imgType, width, height)
@@ -101,29 +98,24 @@ func (ims *ImgStore) loadImg(owner, imgType string, width, height int) ([]byte, 
 
 	names, err := filepath.Glob(path.Join(dirPath, filePrefix) + "*")
 	if err != nil {
-		return nil, fmt.Errorf("glob error: %v", err)
+		return "", fmt.Errorf("glob error: %v", err)
 	}
 
 	if len(names) == 0 {
-		return nil, fmt.Errorf("no files found")
+		return "", fmt.Errorf("no files found")
 	}
 
 	fullFileName := names[0]
 
 	_, err = os.Stat(fullFileName)
 	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("load img os stat error: %v", err)
+		return "", fmt.Errorf("load img os stat error: %v", err)
 	}
 
-	ba, err := ioutil.ReadFile(fullFileName)
-	if err != nil {
-		return nil, fmt.Errorf("load img read file error: %v", err)
-	}
-
-	return ba, nil
+	return fullFileName, nil
 }
 
-func (ims *ImgStore) getCheckFile(req *dwh_common.ImageCheckSumRequest) bool {
+func (ims *ImgStorage) getCheckFile(req *dwh_common.ImageCheckSumRequest) bool {
 	dirPath := path.Join(ims.storagePath, req.Owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {

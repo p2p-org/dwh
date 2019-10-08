@@ -123,6 +123,8 @@ func (tmw *TokenMetadataWorker) Run() error {
 }
 
 func (tmw *TokenMetadataWorker) processMessage(msg []byte, priority dwh_common.ImgQueuePriority) error {
+	fmt.Println("got message:", string(msg))
+	log.Println("got message:", string(msg))
 	var (
 		rcvd     dwh_common.TaskInfo
 		metadata map[string]interface{}

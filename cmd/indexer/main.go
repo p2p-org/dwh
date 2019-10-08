@@ -6,6 +6,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/dgamingfoundation/dwh/common"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/dgamingfoundation/dwh/x/indexer"
 	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	_ "github.com/lib/pq"
@@ -24,7 +25,6 @@ func main() {
 		go func() {
 			log.Println(http.ListenAndServe(viper.GetString(common.PprofHostPortFlag), nil))
 		}()
-
 	}
 
 	db, err := common.GetDB()
@@ -42,9 +42,8 @@ func main() {
 		log.Fatalf("failed to get env: %v", err)
 	}
 
-	idxrCfg := &indexer.Config{
-		StatePath: viper.GetString(common.StatePathFlag),
-	}
+	idxrCfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
+	idxrCfg.StatePath = viper.GetString(common.StatePathFlag)
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)

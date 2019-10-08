@@ -39,7 +39,7 @@ func InitConfig() {
 	viper.SetDefault(PrometheusHostPortFlag, "localhost:9081")
 	viper.SetDefault(PprofEnabledFlag, true)
 	viper.SetDefault(PprofHostPortFlag, "localhost:6061")
-	viper.SetDefault(StatePathFlag, "./indexer.state")
+	viper.SetDefault(StatePathFlag, path.Join(usr.HomeDir, "indexer.state"))
 	viper.SetDefault(NodeEndpointFlag, "tcp://localhost:26657")
 	viper.SetDefault(ChainIDFlag, "mpchain")
 	viper.SetDefault(VfrHomeFlag, "")

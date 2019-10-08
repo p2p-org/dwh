@@ -7,15 +7,14 @@ import (
 	"time"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/imgstore"
-
+	"github.com/dgamingfoundation/dwh/x/imgstorage"
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	cfg := dwh_common.ReadCommonConfig("config", "/root/")
+	cfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
 
-	st := imgstore.NewImgStore(cfg.StorageDiskPath, cfg.StorageCompressedOption)
+	st := imgstorage.NewImgStorage(cfg)
 
 	router := mux.NewRouter()
 	router.HandleFunc(dwh_common.StoreImagePath, st.StoreHandler).Methods(http.MethodPost)
@@ -24,7 +23,7 @@ func main() {
 
 	srv := http.Server{
 		Handler:           router,
-		Addr:              fmt.Sprintf("%s:%d", cfg.StorageAddr, cfg.StoragePort),
+		Addr:              fmt.Sprintf("%s:%d", "0.0.0.0", cfg.StoragePort),
 		WriteTimeout:      15 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		ReadHeaderTimeout: 5 * time.Second,

@@ -58,10 +58,10 @@ func (rs *RMQSender) Closer() error {
 	return nil
 }
 
-func (rs *RMQSender) Publish(imgUrl, owner, tokenId string, priority ImgQueuePriority) error {
+func (rs *RMQSender) Publish(taskUrl, owner, tokenId string, priority ImgQueuePriority) error {
 	ba, err := json.Marshal(&TaskInfo{
 		Owner:   owner,
-		URL:     imgUrl,
+		URL:     taskUrl,
 		TokenID: tokenId,
 	})
 	if err != nil {

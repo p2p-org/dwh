@@ -17,3 +17,4 @@ build
 go.sum
 
 indexer.state
+volumes

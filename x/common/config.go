@@ -7,6 +7,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	DefaultConfigName = "config"
+	DefaultConfigPath = "/root/"
+)
+
 type IndexerCfg struct {
 	StatePath string `mapstructure:"state_path"`
 }
@@ -96,7 +101,7 @@ func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
 		},
 
 		ImgStorageServiceCfg: ImgStorageServiceCfg{
-			StorageAddr:             "0.0.0.0",
+			StorageAddr:             "http://127.0.0.1",
 			StoragePort:             11535,
 			StorageCompressedOption: false,
 			StorageDiskPath:         "/root/dwh_storage",

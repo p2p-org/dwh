@@ -23,7 +23,7 @@
 		height = 150
 
 [img_storage_service]
-	storage_addr = "http://localhost"
+	storage_addr = "http://127.0.0.1"
     storage_port = 11535
     storage_is_compressed = false
     storage_path = "/root/dwh_storage"
