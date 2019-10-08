@@ -5,15 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
-	"github.com/dgamingfoundation/dwh/x/tokenMetadataService"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -26,12 +24,17 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
-	uriSender  *tokenMetadataService.RMQSender
+	uriSender  *dwh_common.RMQSender
 }
+
+const defaultCfgName = "config"
+const defaultCfgPath = "/root/"
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
-	sender, err := tokenMetadataService.NewRMQSender("", "")
+	cfg := dwh_common.ReadCommonConfig(defaultCfgName, defaultCfgPath)
+
+	sender, err := dwh_common.NewRMQSender(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}

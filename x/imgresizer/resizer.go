@@ -21,7 +21,7 @@ import (
 )
 
 type ImageProcessingWorker struct {
-	receiver            *RMQReceiver
+	receiver            *dwh_common.RMQReceiver
 	interpolationMethod resize.InterpolationFunction
 	resolutions         []dwh_common.Resolution
 	destination         string
@@ -32,7 +32,7 @@ type ImageProcessingWorker struct {
 
 func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessingWorker, error) {
 	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
-	receiver, err := NewRMQReceiver(cfg)
+	receiver, err := dwh_common.NewRMQReceiver(cfg, cfg.ImgQueueName, cfg.ImgQueueMaxPriority, cfg.ImgQueuePrefetchCount)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (irw *ImageProcessingWorker) Closer() error {
 }
 
 func (irw *ImageProcessingWorker) Run() error {
-	msgs, err := irw.receiver.GetImgMessageChan()
+	msgs, err := irw.receiver.GetMessageChan()
 	if err != nil {
 		return err
 	}

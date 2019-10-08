@@ -7,7 +7,7 @@ import (
 
 	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/dgamingfoundation/dwh/common"
-	"github.com/dgamingfoundation/dwh/handlers"
+	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	app "github.com/dgamingfoundation/marketplace"
 )
 

@@ -1,22 +1,20 @@
-package tokenMetadataService
+package dwh_common
 
 import (
 	"encoding/json"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/streadway/amqp"
 )
 
 type RMQSender struct {
-	config *dwh_common.DwhCommonServiceConfig
+	config *DwhCommonServiceConfig
 	conn   *amqp.Connection
 	ch     *amqp.Channel
-	Q      *amqp.Queue
+	imgQ   *amqp.Queue
 }
 
-func NewRMQSender(configFileName, configPath string) (*RMQSender, error) {
-	rCfg := dwh_common.ReadCommonConfig(configFileName, configPath)
-	u := dwh_common.QueueAddrStringFromConfig(rCfg)
+func NewRMQSender(cfg *DwhCommonServiceConfig, queueName string, queueMaxPriority int) (*RMQSender, error) {
+	u := QueueAddrStringFromConfig(cfg)
 
 	conn, err := amqp.Dial(u)
 	if err != nil {
@@ -27,9 +25,10 @@ func NewRMQSender(configFileName, configPath string) (*RMQSender, error) {
 	if err != nil {
 		return nil, err
 	}
-	qArgs := map[string]interface{}{"x-max-priority": rCfg.UriQueueMaxPriority}
+
+	qArgs := map[string]interface{}{"x-max-priority": queueMaxPriority}
 	q, err := ch.QueueDeclare(
-		rCfg.UriQueueName,
+		queueName,
 		true,
 		false,
 		false,
@@ -41,10 +40,10 @@ func NewRMQSender(configFileName, configPath string) (*RMQSender, error) {
 	}
 
 	return &RMQSender{
-		config: rCfg,
+		config: cfg,
 		conn:   conn,
 		ch:     ch,
-		Q:      &q,
+		imgQ:   &q,
 	}, nil
 
 }
@@ -59,11 +58,11 @@ func (rs *RMQSender) Closer() error {
 	return nil
 }
 
-func (rs *RMQSender) Publish(tokenID, url, owner string, priority dwh_common.ImgQueuePriority) error {
-	ba, err := json.Marshal(&dwh_common.TaskInfo{
+func (rs *RMQSender) Publish(imgUrl, owner, tokenId string, priority ImgQueuePriority) error {
+	ba, err := json.Marshal(&TaskInfo{
 		Owner:   owner,
-		URL:     url,
-		TokenID: tokenID,
+		URL:     imgUrl,
+		TokenID: tokenId,
 	})
 	if err != nil {
 		return err
@@ -71,7 +70,7 @@ func (rs *RMQSender) Publish(tokenID, url, owner string, priority dwh_common.Img
 
 	err = rs.ch.Publish(
 		"",
-		rs.Q.Name,
+		rs.imgQ.Name,
 		false,
 		false,
 		amqp.Publishing{

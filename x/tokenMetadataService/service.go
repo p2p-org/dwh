@@ -11,7 +11,6 @@ import (
 	"time"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/imgresizer"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,14 +18,14 @@ import (
 )
 
 type TokenMetadataWorker struct {
-	receiver           *RMQReceiver
+	receiver           *dwh_common.RMQReceiver
 	client             http.Client
 	cfg                *dwh_common.DwhCommonServiceConfig
 	mongoClient        *mongo.Client
 	mongoCollection    *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
-	imgSender          *imgresizer.RMQSender
+	imgSender          *dwh_common.RMQSender
 }
 
 func getMongoClient(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
@@ -45,12 +44,12 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 
 	ctx := context.Background()
 
-	receiver, err := NewRMQReceiver(cfg)
+	receiver, err := dwh_common.NewRMQReceiver(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority, cfg.UriQueuePrefetchCount)
 	if err != nil {
 		return nil, err
 	}
 
-	imgSender, err := imgresizer.NewRMQSender(configFileName, configPath)
+	imgSender, err := dwh_common.NewRMQSender(cfg, cfg.ImgQueueName, cfg.ImgQueueMaxPriority)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func (tmw *TokenMetadataWorker) Closer() error {
 }
 
 func (tmw *TokenMetadataWorker) Run() error {
-	msgs, err := tmw.receiver.GetUriMessageChan()
+	msgs, err := tmw.receiver.GetMessageChan()
 	if err != nil {
 		return err
 	}
