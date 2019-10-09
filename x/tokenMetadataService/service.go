@@ -28,26 +28,6 @@ type TokenMetadataWorker struct {
 	imgSender          *dwh_common.RMQSender
 }
 
-func getMongoClient(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
-	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
-		cfg.MongoUserName,
-		cfg.MongoUserPass,
-		cfg.MongoHost,
-		cfg.MongoDatabase,
-	)
-	opt := options.Client().ApplyURI(uri)
-	creds := options.Credential{
-		Username: cfg.MongoUserName,
-		Password: cfg.MongoUserPass,
-	}
-	opt = opt.SetAuth(creds)
-	client, err := mongo.NewClient(opt)
-	if err != nil {
-		return nil, fmt.Errorf("could not create mongo client, error: %+v", err)
-	}
-	return client, nil
-}
-
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
 	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 
@@ -63,7 +43,7 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 		return nil, fmt.Errorf("could not create rabbitMQ sender, error: %+v", err)
 	}
 
-	mongoClient, err := getMongoClient(cfg)
+	mongoClient, err := dwh_common.GetMongoClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}

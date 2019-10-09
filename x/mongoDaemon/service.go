@@ -26,26 +26,6 @@ type MongoDaemon struct {
 	ctx               context.Context
 }
 
-func getMongoDB(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
-	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
-		cfg.MongoUserName,
-		cfg.MongoUserPass,
-		cfg.MongoHost,
-		cfg.MongoDatabase,
-	)
-	opt := options.Client().ApplyURI(uri)
-	creds := options.Credential{
-		Username: cfg.MongoUserName,
-		Password: cfg.MongoUserPass,
-	}
-	opt = opt.SetAuth(creds)
-	client, err := mongo.NewClient(opt)
-	if err != nil {
-		return nil, fmt.Errorf("could not create mongo client, error: %+v", err)
-	}
-	return client, nil
-}
-
 func NewMongoDaemon(configFileName, configPath string) (*MongoDaemon, error) {
 	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 
@@ -56,7 +36,7 @@ func NewMongoDaemon(configFileName, configPath string) (*MongoDaemon, error) {
 		return nil, err
 	}
 
-	mongoClient, err := getMongoDB(cfg)
+	mongoClient, err := dwh_common.GetMongoClient(cfg)
 	if err != nil {
 		return nil, err
 	}
