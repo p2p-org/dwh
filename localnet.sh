@@ -76,7 +76,7 @@ while test $# -gt 0; do
       exit 0
       ;;
     rebuild-all)
-      $cur_path/../marketplace/runDocker.sh
+      $cur_path/../marketplace/buildDocker.sh
       $cur_path/$0 rebuild
 
       exit 0
