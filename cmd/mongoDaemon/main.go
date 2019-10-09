@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
+	stdLog "log"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-
 	"github.com/dgamingfoundation/dwh/x/mongoDaemon"
 )
 
@@ -15,6 +14,6 @@ func main() {
 	}
 	defer worker.Closer()
 
-	log.Println("run mongo daemon")
-	log.Println(worker.Run())
+	stdLog.Println("run mongo daemon")
+	stdLog.Println(worker.Run())
 }

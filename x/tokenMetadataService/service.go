@@ -36,7 +36,7 @@ func getMongoClient(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, erro
 		cfg.MongoDatabase,
 	)
 	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	return client, err
+	return client, fmt.Errorf("could not create mongo client, error: %+v", err)
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
@@ -46,17 +46,17 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 
 	receiver, err := dwh_common.NewRMQReceiver(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority, cfg.UriQueuePrefetchCount)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ receiver, error: %+v", err)
 	}
 
 	imgSender, err := dwh_common.NewRMQSender(cfg, cfg.ImgQueueName, cfg.ImgQueueMaxPriority)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ sender, error: %+v", err)
 	}
 
 	mongoClient, err := getMongoClient(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}
 
 	if err = mongoClient.Connect(ctx); err != nil {

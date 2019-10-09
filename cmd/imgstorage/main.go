@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	stdLog "log"
 	"net/http"
 	"time"
 
@@ -30,6 +30,6 @@ func main() {
 		IdleTimeout:       30 * time.Second,
 	}
 
-	log.Println("listen and serve start")
-	log.Println(srv.ListenAndServe().Error())
+	stdLog.Println("listen and serve start")
+	stdLog.Println(srv.ListenAndServe().Error())
 }

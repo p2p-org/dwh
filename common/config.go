@@ -1,7 +1,7 @@
 package common
 
 import (
-	"log"
+	stdLog "log"
 	"os/user"
 	"path"
 
@@ -32,7 +32,7 @@ const (
 func InitConfig() {
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatalf("failed to get current user, exiting: %v", err)
+		stdLog.Fatalf("failed to get current user, exiting: %v", err)
 	}
 
 	viper.SetDefault(PrometheusEnabledFlag, true)
@@ -56,9 +56,9 @@ func InitConfig() {
 
 	if err = viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Println("config file not found, using default configuration")
+			stdLog.Println("config file not found, using default configuration")
 		} else {
-			log.Fatalf("failed to parse config file, exiting: %v", err)
+			stdLog.Fatalf("failed to parse config file, exiting: %v", err)
 		}
 	}
 }

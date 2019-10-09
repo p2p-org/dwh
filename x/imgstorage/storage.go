@@ -19,18 +19,18 @@ func (ims *ImgStorage) storeImg(req *dwh_common.ImageStoreRequest) error {
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(dirPath, 0777)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not mkDir, error: %+v", err)
 		}
 	}
 
 	if err == nil && !inf.IsDir() {
 		err := os.Remove(dirPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not rm file, error: %+v", err)
 		}
 		err = os.MkdirAll(dirPath, 0777)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not mkDir instead of file, error: %+v", err)
 		}
 	}
 
@@ -38,24 +38,24 @@ func (ims *ImgStorage) storeImg(req *dwh_common.ImageStoreRequest) error {
 	filePrefix := fmt.Sprintf("%x", md5.Sum([]byte(name)))
 	names, err := filepath.Glob(path.Join(dirPath, filePrefix) + "*")
 	if err != nil {
-		return nil
+		return fmt.Errorf("could not search in directory, error: %+v", err)
 	}
 
 	buf := bytes.NewBuffer(req.ImageBytes)
 
 	zr, err := gzip.NewReader(buf)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create gzip reader, error: %+v", err)
 	}
 
 	ba, err := ioutil.ReadAll(zr)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read from gzip, error: %+v", err)
 	}
 
 	err = zr.Close()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not close gzip reader, error: %+v", err)
 	}
 
 	fileName := fmt.Sprintf("%s+%x", filePrefix, md5.Sum(ba))
@@ -70,13 +70,13 @@ func (ims *ImgStorage) storeImg(req *dwh_common.ImageStoreRequest) error {
 
 	err = ioutil.WriteFile(fileFullName, bytesToStore, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not write file, error: %+v", err)
 	}
 
 	for _, v := range names {
 		err := os.Remove(v)
 		if err != nil {
-			fmt.Println("error removing file:", err)
+			return fmt.Errorf("could not remove old file, error: %+v", err)
 		}
 	}
 
@@ -119,10 +119,7 @@ func (ims *ImgStorage) getCheckFile(req *dwh_common.ImageCheckSumRequest) bool {
 	dirPath := path.Join(ims.storagePath, req.Owner)
 	inf, err := os.Stat(dirPath)
 	if os.IsNotExist(err) {
-		err := os.MkdirAll(dirPath, 0777)
-		if err != nil {
-			return false
-		}
+		return false
 	}
 
 	if err == nil && !inf.IsDir() {

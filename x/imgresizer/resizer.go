@@ -12,11 +12,11 @@ import (
 	"image/png"
 	_ "image/png"
 	"io/ioutil"
+	stdLog "log"
 	"net/http"
 	"time"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-
 	"github.com/nfnt/resize"
 )
 
@@ -34,7 +34,7 @@ func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessi
 	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 	receiver, err := dwh_common.NewRMQReceiver(cfg, cfg.ImgQueueName, cfg.ImgQueueMaxPriority, cfg.ImgQueuePrefetchCount)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ receiver, error: %+v", err)
 	}
 
 	return &ImageProcessingWorker{
@@ -51,7 +51,7 @@ func NewImageProcessingWorker(configFileName, configPath string) (*ImageProcessi
 func (irw *ImageProcessingWorker) Closer() error {
 	err := irw.receiver.Closer()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not invoke receiver closer, error: %+v", err)
 	}
 	return nil
 }
@@ -59,20 +59,22 @@ func (irw *ImageProcessingWorker) Closer() error {
 func (irw *ImageProcessingWorker) Run() error {
 	msgs, err := irw.receiver.GetMessageChan()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get rabbitMQ msg chan, error: %+v", err)
 	}
 
 	for d := range msgs {
 		err = irw.processMessage(d.Body)
 		if err != nil {
-			fmt.Println("failed to process rabbitMQ message: ", err)
-			continue
+			stdLog.Println("failed to process rabbitMQ message: ", err)
+			// TODO continue?
+			// continue
 		}
 
 		err = d.Ack(false)
 		if err != nil {
-			fmt.Println("failed to ack to rabbitMQ: ", err)
-			continue
+			stdLog.Println("failed to ack to rabbitMQ: ", err)
+			// TODO continue or panic?
+			// continue
 		}
 	}
 	return nil
@@ -83,18 +85,18 @@ func (irw *ImageProcessingWorker) processMessage(msg []byte) error {
 	var rcvd dwh_common.TaskInfo
 	err := json.Unmarshal(msg, &rcvd)
 	if err != nil {
-		return fmt.Errorf("unmarshal error: %v", err)
+		return fmt.Errorf("img resizer unmarshal error: %+v", err)
 	}
 
 	originalImg, err := irw.getImage(rcvd.URL)
 	if err != nil {
-		return fmt.Errorf("get image error: %v", err)
+		return fmt.Errorf("img resizer get image error: %+v", err)
 	}
 	for _, r := range irw.resolutions {
 		r := r
 		err := irw.resizeAndSendImage(originalImg, r, &rcvd)
 		if err != nil {
-			return fmt.Errorf("resize and send image error: %v", err)
+			return fmt.Errorf("img resizer resizeAndSend image error: %+v", err)
 		}
 	}
 	return nil
@@ -109,7 +111,7 @@ func (irw *ImageProcessingWorker) getImage(imgUrl string) (image.Image, error) {
 
 	img, _, err := image.Decode(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not decode image %s, error: %+v", imgUrl, err)
 	}
 
 	return img, nil
@@ -126,29 +128,29 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 
 	ba, err := json.Marshal(&req)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not marshal checkSum request, error: %+v", err)
 	}
 	dataBuf := bytes.NewReader(ba)
 
 	resp, err := irw.client.Post(irw.destination+dwh_common.GetCheckSumPath, "application/json", dataBuf)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not post checkSum message, error: %+v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("check image existence error, code: %v", resp.StatusCode)
+		return false, fmt.Errorf("check image existence error, code: %+v", resp.StatusCode)
 	}
 
 	ba, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not read checkSum response, error: %+v", err)
 	}
 
 	var repl dwh_common.ImageCheckSumResponse
 	err = json.Unmarshal(ba, &repl)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not unmarshal checkSum response, error: %+v", err)
 	}
 
 	return repl.ImageExists, nil
@@ -163,12 +165,13 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(
 	buf := new(bytes.Buffer)
 
 	if err := irw.encoder.Encode(buf, img); err != nil {
-		return fmt.Errorf("encode image error: %v", err)
+		return fmt.Errorf("encode image error: %+v", err)
 	}
 
 	ok, err := irw.checkImgExistence(buf.Bytes(), resolution, info)
 	if err != nil {
-		fmt.Println("checkImgExistence error:", err)
+		// no return, work further
+		stdLog.Println("checkImgExistence error:", err)
 	}
 
 	// image exists, do nothing
@@ -181,15 +184,15 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(
 
 	_, err = zw.Write(buf.Bytes())
 	if err != nil {
-		return fmt.Errorf("gzip write error: %v", err)
+		return fmt.Errorf("gzip write error: %+v", err)
 	}
 
 	if err := zw.Flush(); err != nil {
-		return fmt.Errorf("gzip flush error: %v", err)
+		return fmt.Errorf("gzip flush error: %+v", err)
 	}
 
 	if err := zw.Close(); err != nil {
-		return fmt.Errorf("gzip close error: %v", err)
+		return fmt.Errorf("gzip close error: %+v", err)
 	}
 
 	req := dwh_common.ImageStoreRequest{
@@ -201,19 +204,19 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(
 
 	ba, err := json.Marshal(&req)
 	if err != nil {
-		return fmt.Errorf("image store marshal error: %v", err)
+		return fmt.Errorf("image store marshal error: %+v", err)
 	}
 
 	dataBuf := bytes.NewReader(ba)
 
 	resp, err := irw.client.Post(irw.destination+dwh_common.StoreImagePath, "application/json", dataBuf)
 	if err != nil {
-		return fmt.Errorf("image store post error: %v", err)
+		return fmt.Errorf("image store post error: %+v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error storing, status code:  %v", resp.StatusCode)
+		return fmt.Errorf("error storing, status code:  %+v", resp.StatusCode)
 	}
 
 	return nil

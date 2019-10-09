@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
+	stdLog "log"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-
 	"github.com/dgamingfoundation/dwh/x/tokenMetadataService"
 )
 
@@ -15,6 +14,6 @@ func main() {
 	}
 	defer worker.Closer()
 
-	log.Println("run tokenMetaData worker")
-	log.Println(worker.Run())
+	stdLog.Println("run tokenMetaData worker")
+	stdLog.Println(worker.Run())
 }

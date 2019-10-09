@@ -2,6 +2,7 @@ package dwh_common
 
 import (
 	"fmt"
+	stdLog "log"
 	"net/url"
 
 	"github.com/spf13/viper"
@@ -149,13 +150,13 @@ func ReadCommonConfig(configName, path string) *DwhCommonServiceConfig {
 	vCfg.AddConfigPath(path)
 	err := vCfg.ReadInConfig()
 	if err != nil {
-		fmt.Println("ERROR: server config file not found, error:", err)
-		return DefaultDwhCommonServiceConfig()
+		stdLog.Println("server config file not found, load default config")
+		return cfg
 	}
 	err = vCfg.Unmarshal(&cfg)
 	if err != nil {
-		fmt.Println("ERROR: could not unmarshal server config file, error:", err)
-		return DefaultDwhCommonServiceConfig()
+		stdLog.Println("could not unmarshal server config file, load default config")
+		return cfg
 	}
 
 	return cfg

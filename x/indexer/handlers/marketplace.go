@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	stdLog "log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
@@ -480,7 +481,7 @@ func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, 
 
 func (m *MarketplaceHandler) Stop() {
 	if err := m.uriSender.Closer(); err != nil {
-		fmt.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
+		stdLog.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
 	}
 }
 func (m *MarketplaceHandler) getEventAttr(events []abciTypes.Event, eventType, attrKey string) (string, bool) {

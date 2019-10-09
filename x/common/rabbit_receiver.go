@@ -1,6 +1,8 @@
 package dwh_common
 
 import (
+	"fmt"
+
 	"github.com/streadway/amqp"
 )
 
@@ -16,12 +18,12 @@ func NewRMQReceiver(cfg *DwhCommonServiceConfig, queueName string, queueMaxPrior
 
 	conn, err := amqp.Dial(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}
 
 	uriCh, err := conn.Channel()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ channel error: %+v", err)
 	}
 
 	uriQArgs := map[string]interface{}{"x-max-priority": queueMaxPriority}
@@ -35,7 +37,7 @@ func NewRMQReceiver(cfg *DwhCommonServiceConfig, queueName string, queueMaxPrior
 		uriQArgs,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not declare rabbitMQ queue, error: %+v", err)
 	}
 
 	err = uriCh.Qos(
@@ -44,7 +46,7 @@ func NewRMQReceiver(cfg *DwhCommonServiceConfig, queueName string, queueMaxPrior
 		false,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not set rabbitMQ Qos, error: %+v", err)
 	}
 
 	return &RMQReceiver{
@@ -58,11 +60,11 @@ func NewRMQReceiver(cfg *DwhCommonServiceConfig, queueName string, queueMaxPrior
 
 func (rs *RMQReceiver) Closer() error {
 	if err := rs.ch.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ channel, error: %+v", err)
 	}
 
 	if err := rs.conn.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ connection, error: %+v", err)
 	}
 	return nil
 }
@@ -77,5 +79,8 @@ func (rs *RMQReceiver) GetMessageChan() (<-chan amqp.Delivery, error) {
 		false,
 		nil,
 	)
-	return msgs, err
+	if err != nil {
+		return nil, fmt.Errorf("could not get rabbitMQ msg chan, error: %+v", err)
+	}
+	return msgs, nil
 }

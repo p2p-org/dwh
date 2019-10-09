@@ -2,6 +2,7 @@ package dwh_common
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/streadway/amqp"
 )
@@ -18,12 +19,12 @@ func NewRMQSender(cfg *DwhCommonServiceConfig, queueName string, queueMaxPriorit
 
 	conn, err := amqp.Dial(u)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ channel, error: %+v", err)
 	}
 
 	qArgs := map[string]interface{}{"x-max-priority": queueMaxPriority}
@@ -36,7 +37,7 @@ func NewRMQSender(cfg *DwhCommonServiceConfig, queueName string, queueMaxPriorit
 		qArgs,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not declare rabbitMQ queue, error: %+v", err)
 	}
 
 	return &RMQSender{
@@ -50,10 +51,10 @@ func NewRMQSender(cfg *DwhCommonServiceConfig, queueName string, queueMaxPriorit
 
 func (rs *RMQSender) Closer() error {
 	if err := rs.ch.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ channel, error: %+v", err)
 	}
 	if err := rs.conn.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ connection, error: %+v", err)
 	}
 	return nil
 }
@@ -65,7 +66,7 @@ func (rs *RMQSender) Publish(taskUrl, owner, tokenId string, priority ImgQueuePr
 		TokenID: tokenId,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("could not marshal rabbitMQ task, error: %+v", err)
 	}
 
 	err = rs.ch.Publish(
@@ -79,5 +80,5 @@ func (rs *RMQSender) Publish(taskUrl, owner, tokenId string, priority ImgQueuePr
 			Body:         ba,
 			Priority:     uint8(priority),
 		})
-	return err
+	return fmt.Errorf("could not publish rabbitMQ message, error: %+v", err)
 }

@@ -2,8 +2,8 @@ package imgstorage
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	stdLog "log"
 	"net/http"
 	"strconv"
 
@@ -26,7 +26,7 @@ func (ims *ImgStorage) StoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = ims.storeImg(&req)
 	if err != nil {
-		fmt.Println("store image error")
+		stdLog.Println("store image error")
 		return
 	}
 }
@@ -79,14 +79,14 @@ func (ims *ImgStorage) GetCheckSumHandler(w http.ResponseWriter, r *http.Request
 		ImageExists: ok,
 	})
 	if err != nil {
-		fmt.Println("check file marshal response error:", err)
+		stdLog.Println("check file marshal response error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = w.Write(ba)
 	if err != nil {
-		fmt.Println("check sum write response error:", err)
+		stdLog.Println("check sum write response error:", err)
 		return
 	}
 }
