@@ -35,8 +35,17 @@ func getMongoClient(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, erro
 		cfg.MongoHost,
 		cfg.MongoDatabase,
 	)
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	return client, fmt.Errorf("could not create mongo client, error: %+v", err)
+	opt := options.Client().ApplyURI(uri)
+	creds := options.Credential{
+		Username: cfg.MongoUserName,
+		Password: cfg.MongoUserPass,
+	}
+	opt = opt.SetAuth(creds)
+	client, err := mongo.NewClient(opt)
+	if err != nil {
+		return nil, fmt.Errorf("could not create mongo client, error: %+v", err)
+	}
+	return client, nil
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
@@ -60,7 +69,7 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 	}
 
 	if err = mongoClient.Connect(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not connect MongoDB, error: %+v", err)
 	}
 
 	mongoCollection := mongoClient.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection)
@@ -69,7 +78,7 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 	keys := bson.D{{Key: "dwhData.lastChecked", Value: 1}}
 	s, err := mongoCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: keys}, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create MongoDB index, error: %+v", err)
 	}
 	log.Println("created index:", s)
 

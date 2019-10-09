@@ -80,5 +80,8 @@ func (rs *RMQSender) Publish(taskUrl, owner, tokenId string, priority ImgQueuePr
 			Body:         ba,
 			Priority:     uint8(priority),
 		})
-	return fmt.Errorf("could not publish rabbitMQ message, error: %+v", err)
+	if err != nil {
+		return fmt.Errorf("could not publish rabbitMQ message, error: %+v", err)
+	}
+	return nil
 }

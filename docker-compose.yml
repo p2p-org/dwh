@@ -6,6 +6,7 @@ services:
     volumes:
       - ./volumes/indexer.state:/root/indexer.state
     network_mode: host
+    restart: unless-stopped
 
   img_storage:
     image: "dwh_img_storage:latest"
@@ -16,15 +17,19 @@ services:
     expose:
       - 11535
     network_mode: host
+    restart: unless-stopped
 
   token_meta_data:
     image: "dwh_tmd_worker:latest"
     network_mode: host
+    restart: unless-stopped
 
   img_worker:
     image: "dwh_img_worker:latest"
+    restart: unless-stopped
     network_mode: host
 
   mongo_daemon:
     image: "dwh_mongo_daemon:latest"
     network_mode: host
+    restart: unless-stopped

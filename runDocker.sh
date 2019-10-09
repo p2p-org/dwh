@@ -32,4 +32,4 @@ docker build -t $docker_mongo_daemon_name --build-arg APPNAME=mongoDaemon .
 
 rm -rf $cur_path/vendor
 
-docker-compose up --scale token_meta_data=2 --scale img_worker=2
+# docker-compose up --scale token_meta_data=2 --scale img_worker=2

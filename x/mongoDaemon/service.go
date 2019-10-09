@@ -33,8 +33,17 @@ func getMongoDB(cfg *dwh_common.DwhCommonServiceConfig) (*mongo.Client, error) {
 		cfg.MongoHost,
 		cfg.MongoDatabase,
 	)
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	return client, err
+	opt := options.Client().ApplyURI(uri)
+	creds := options.Credential{
+		Username: cfg.MongoUserName,
+		Password: cfg.MongoUserPass,
+	}
+	opt = opt.SetAuth(creds)
+	client, err := mongo.NewClient(opt)
+	if err != nil {
+		return nil, fmt.Errorf("could not create mongo client, error: %+v", err)
+	}
+	return client, nil
 }
 
 func NewMongoDaemon(configFileName, configPath string) (*MongoDaemon, error) {

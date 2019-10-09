@@ -1,0 +1,60 @@
+version: '3'
+services:
+  postgreSQL:
+    image: postgres:11-alpine
+    container_name: dwh_db
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=dgaming
+      - POSTGRES_PASSWORD=dgaming
+      - POSTGRES_DB=marketplace
+    network_mode: host
+
+  mongodb:
+    image: mongo:latest
+    container_name: dwh_mongo
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+    environment:
+      - MONGODB_USER=dgaming
+      - MONGODB_PASS=dgaming
+      - MONGODB_DATABASE=dgaming
+      - MONGO_INITDB_DATABASE=dgaming
+      - MONGO_INITDB_ROOT_USERNAME=dgaming
+      - MONGO_INITDB_ROOT_PASSWORD=dgaming
+    network_mode: host
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: dwh_rabbit
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
+      interval: 5s
+      timeout: 15s
+      retries: 1
+    network_mode: host
+
+  gql:
+    container_name: dwh_gql
+    image: hasura/graphql-engine:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgreSQL
+    environment:
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@db:5432/marketplace
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+    network_mode: host
+
+  marketplace:
+    image: "dwh_marketplace:latest"
+    network_mode: host
+    restart: unless-stopped
