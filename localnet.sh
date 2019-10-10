@@ -49,7 +49,7 @@ while test $# -gt 0; do
       ;;
     restart)
       $cur_path/$0 stop
-      $cur_path/$0 no_rebuild
+      $cur_path/$0 start
       exit 0
       ;;
     rebuild)
@@ -83,6 +83,22 @@ while test $# -gt 0; do
     rebuild-all)
       $cur_path/$0 rebuild-mp
       $cur_path/$0 rebuild
+
+      exit 0
+      ;;
+    seed)
+      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
+      docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data.sh
+
+      exit 0
+      ;;
+    logs-i)
+      docker-compose -f dwh-compose.yml logs -f indexer
+
+      exit 0
+      ;;
+    logs-m)
+      docker-compose -f infrastructure-compose.yml logs --follow marketplace
 
       exit 0
       ;;

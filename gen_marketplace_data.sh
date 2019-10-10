@@ -108,6 +108,18 @@ echo "Offer a price for TOKEN_7"
 mpcli tx marketplace offer TOKEN_7 100token ${buyerBeneficiary} --from user2 -y <<< '12345678'
 sleep 5
 
-echo "Offer a price for TOKEN_6"
-mpcli tx marketplace accept_offer TOKEN_7 [offer_id] [beneficiary] --from user1 -y <<< '12345678'
+echo "Accept offer for TOKEN_7"
+#mpcli tx marketplace accept_offer TOKEN_7 [offer_id] ${sellerBeneficiary} --from user1 -y <<< '12345678'
+#mpcli tx marketplace accept_offer TOKEN_7 2954fee2-ea97-4a7a-92ee-e3e929448e56 cosmos194uf2qucgc7uwv48xvzxy30zy45u9a05e9xd25 --from user1 -y <<< '12345678'
+sleep 5
+
+
+# >>>
+echo "Offer a price again for TOKEN_3"
+mpcli tx marketplace offer TOKEN_3 200token ${buyerBeneficiary} --from user1 -y <<< '12345678'
+sleep 5
+
+
+echo "Put TOKEN_4 on auction"
+mpcli tx marketplace put_on_auction TOKEN_4 22token ${sellerBeneficiary} 1000m --buyout 100token --from user2 -y <<< '12345678'
 sleep 5
