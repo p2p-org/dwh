@@ -1,8 +1,8 @@
 version: '3'
 services:
-  db:
+  postgres:
     image: postgres:11-alpine
-    container_name: dwh_db
+    container_name: dwh_postgress
     restart: unless-stopped
     ports:
       - 5432:5432
@@ -10,14 +10,16 @@ services:
       - POSTGRES_USER=dgaming
       - POSTGRES_PASSWORD=dgaming
       - POSTGRES_DB=marketplace
-    network_mode: host
+    networks:
+      - dwh-tier
+  #    network_mode: host
 
   mongodb:
     image: mongo:latest
     container_name: dwh_mongo
     restart: unless-stopped
-    ports:
-      - 27017:27017
+#    ports:
+#      - 27017:27017
     environment:
       - MONGODB_USER=dgaming
       - MONGODB_PASS=dgaming
@@ -25,16 +27,20 @@ services:
       - MONGO_INITDB_DATABASE=dgaming
       - MONGO_INITDB_ROOT_USERNAME=dgaming
       - MONGO_INITDB_ROOT_PASSWORD=dgaming
-    network_mode: host
+    networks:
+      - dwh-tier
+  #    network_mode: host
 
   rabbitmq:
     image: rabbitmq:latest
     container_name: dwh_rabbit
     restart: unless-stopped
-    ports:
-      - 5672:5672
-      - 15672:15672
-    network_mode: host
+#    ports:
+#      - 5672:5672
+#      - 15672:15672
+    networks:
+      - dwh-tier
+  #    network_mode: host
 
   gql:
     container_name: dwh_gql
@@ -43,13 +49,22 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - "db"
+      - "postgres"
     environment:
-      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@localhost:5432/marketplace
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
       - HASURA_GRAPHQL_ENABLE_CONSOLE=true
-    network_mode: host
+    networks:
+      - dwh-tier
+  #    network_mode: host
 
   marketplace:
+    container_name: dwh_marketplace
     image: "dwh_marketplace:latest"
     restart: unless-stopped
-    network_mode: host
+    networks:
+      - dwh-tier
+#    network_mode: host
+
+networks:
+  dwh-tier:
+    driver: bridge
