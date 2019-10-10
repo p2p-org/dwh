@@ -30,6 +30,7 @@ while test $# -gt 0; do
       echo "restart                     removes containers and starts them without rebuild; equals stop && start"
       echo "rebuild                     rebuild dwh images:
                             imgstorage, imgworker, indexer, mongoDaemon, tokenMetadataWorker"
+      echo "rebuild-mp                  rebuild marketplace image"
       echo "rebuild-all                 rebuild all docker images, including marketplace
                             IMPORTANT: marketplace src MUST be in ./../marketplace"
       echo "purge                       remove all containers, delete local files"
@@ -75,8 +76,12 @@ while test $# -gt 0; do
       rm -rf $cur_path/vendor
       exit 0
       ;;
-    rebuild-all)
+    rebuild-mp)
       $cur_path/../marketplace/buildDocker.sh
+      exit 0
+      ;;
+    rebuild-all)
+      $cur_path/$0 rebuild-mp
       $cur_path/$0 rebuild
 
       exit 0
