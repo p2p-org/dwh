@@ -49,7 +49,7 @@ while test $# -gt 0; do
       ;;
     restart)
       $cur_path/$0 stop
-      $cur_path/$0 no_rebuild
+      $cur_path/$0 start
       exit 0
       ;;
     rebuild)
