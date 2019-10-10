@@ -2,13 +2,13 @@ USER = "dgaming"
 PASSWORD = "dgaming"
 DB = "marketplace"
 
-DB_HOST = "localhost"
+DB_HOST = "postgres"
 DB_PORT = "5432"
 
 OS := $(shell uname -s | tr A-Z a-z)
 
 ifeq ($(OS),darwin)
-	DB_HOST := "host.docker.internal"
+	DB_HOST := "localhost"
 endif
 
 install: go.sum

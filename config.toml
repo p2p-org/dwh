@@ -3,7 +3,7 @@
 
 [rabbitmq]
 	queue_scheme = "amqp"
-	queue_addr = "127.0.0.1"
+	queue_addr = "rabbitmq"
 	queue_port = 5672
 	queue_username = "guest"
 	queue_password = "guest"
@@ -23,7 +23,7 @@
 		height = 150
 
 [img_storage_service]
-	storage_addr = "http://127.0.0.1"
+	storage_addr = "http://img_storage"
     storage_port = 11535
     storage_is_compressed = false
     storage_path = "/root/dwh_storage"
@@ -45,6 +45,6 @@
 [mongo_db]
 	mongo_user_name = "dgaming"
 	mongo_user_pass = "dgaming"
-	mongo_host = "localhost:27017"
+	mongo_host = "mongodb:27017"
 	mongo_database = "dgaming"
 	mongo_collection = "token_metadata"
