@@ -105,7 +105,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			return err
 		}
 		db = db.Create(
-			common.NewNFTFromMarketplaceNFT(value.ID, value.Recipient.String(), value.TokenURI),
+			common.NewNFTFromMarketplaceNFT(value.Denom, value.ID, value.Recipient.String(), value.TokenURI),
 		)
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)

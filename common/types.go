@@ -30,8 +30,9 @@ type NFT struct {
 	Bids   []AuctionBid `gorm:"ForeignKey:TokenID"`
 }
 
-func NewNFTFromMarketplaceNFT(tokenID, ownerAddress, tokenURI string) *NFT {
+func NewNFTFromMarketplaceNFT(denom, tokenID, ownerAddress, tokenURI string) *NFT {
 	return &NFT{
+		Denom:        denom,
 		TokenID:      tokenID,
 		OwnerAddress: ownerAddress,
 		TokenURI:     tokenURI,
@@ -56,6 +57,7 @@ func NewOffer(offer *types.Offer, tokenID string) *Offer {
 		BuyerBeneficiary:      offer.BuyerBeneficiary.String(),
 		BeneficiaryCommission: offer.BeneficiaryCommission,
 		TokenID:               tokenID,
+		Price:                 offer.Price.String(),
 	}
 }
 
