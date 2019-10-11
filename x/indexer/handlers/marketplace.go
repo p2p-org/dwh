@@ -4,13 +4,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	stdLog "log"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
-	"github.com/dgamingfoundation/dwh/tokenMetadataService"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	app "github.com/dgamingfoundation/marketplace"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
@@ -23,12 +25,14 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
-	uriSender  *tokenMetadataService.RMQSender
+	uriSender  *dwh_common.RMQSender
 }
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
-	sender, err := tokenMetadataService.NewRMQSender("", "")
+	cfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
+
+	sender, err := dwh_common.NewRMQSender(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -106,7 +110,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Recipient.String(), tokenMetadataService.FreshlyMadePriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Recipient.String(), value.ID, dwh_common.FreshlyMadePriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
@@ -121,7 +125,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgEditNFTMetadata): %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.ID, value.TokenURI, value.Sender.String(), tokenMetadataService.ForcedUpdatesPriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Sender.String(), value.ID, dwh_common.ForcedUpdatesPriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)
@@ -477,7 +481,7 @@ func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, 
 
 func (m *MarketplaceHandler) Stop() {
 	if err := m.uriSender.Closer(); err != nil {
-		fmt.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
+		stdLog.Printf("error occured when stopping indexer marketplaceHandler: %v", err)
 	}
 }
 func (m *MarketplaceHandler) getEventAttr(events []abciTypes.Event, eventType, attrKey string) (string, bool) {

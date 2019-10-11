@@ -1,18 +1,19 @@
 package main
 
 import (
-	"log"
+	stdLog "log"
 
-	"github.com/dgamingfoundation/dwh/mongoDaemon"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	"github.com/dgamingfoundation/dwh/x/mongoDaemon"
 )
 
 func main() {
-	worker, err := mongoDaemon.NewMongoDaemon("config", "/root/")
+	worker, err := mongoDaemon.NewMongoDaemon(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
 	if err != nil {
 		panic(err)
 	}
 	defer worker.Closer()
 
-	log.Println("run mongo daemon")
-	log.Println(worker.Run())
+	stdLog.Println("run mongo daemon")
+	stdLog.Println(worker.Run())
 }

@@ -1,29 +1,10 @@
-package imgservice
-
-type ImgQueuePriority uint8
-
-const (
-	RegularUpdatePriority ImgQueuePriority = 1 + iota
-	TransferTriggeredPriority
-	FreshlyMadePriority
-	ForcedUpdatesPriority
-)
-
-const (
-	ImgTypeAvatar = "avatar"
-)
+package dwh_common
 
 const (
 	StoreImagePath  = "/imgstore/store_img"
 	LoadImagePath   = "/imgstore/load_img"
 	GetCheckSumPath = "/imgstore/get_check_sum"
 )
-
-type ImageInfo struct {
-	Owner   string `json:"owner"`
-	TokenId string `json:"token_id"`
-	ImgUrl  string `json:"img_url"`
-}
 
 type ImageStoreRequest struct {
 	Owner      string `json:"owner"`

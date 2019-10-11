@@ -2,12 +2,15 @@ package mongoDaemon
 
 import (
 	"encoding/json"
+	"fmt"
+
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 
 	"github.com/streadway/amqp"
 )
 
 type RMQReceiverSender struct {
-	config   *DwhQueueServiceConfig
+	config   *dwh_common.DwhCommonServiceConfig
 	conn     *amqp.Connection
 	ch       *amqp.Channel
 	delayedQ *amqp.Queue
@@ -15,17 +18,17 @@ type RMQReceiverSender struct {
 	uriQ     *amqp.Queue
 }
 
-func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error) {
-	addr := QueueAddrStringFromConfig(cfg)
+func NewRMQReceiverSender(cfg *dwh_common.DwhCommonServiceConfig) (*RMQReceiverSender, error) {
+	addr := dwh_common.QueueAddrStringFromConfig(cfg)
 
 	conn, err := amqp.Dial(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ channel, error: %+v", err)
 	}
 
 	maxPriorityArgs := map[string]interface{}{"x-max-priority": cfg.UriQueueMaxPriority}
@@ -63,7 +66,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		maxPriorityArgs,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not declare uriTask rabbitMQ queue, error: %+v", err)
 	}
 
 	delayedQ, err := ch.QueueDeclare(
@@ -75,7 +78,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		delayedQArgs,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not declare delayed daemon rabbitMQ queue, error: %+v", err)
 	}
 
 	taskQ, err := ch.QueueDeclare(
@@ -87,7 +90,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		maxPriorityAndTTLArgs,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not declare daemon task rabbitMQ queue, error: %+v", err)
 	}
 
 	err = ch.Qos(
@@ -96,7 +99,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		false,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not set rabbitMQ Qos, error: %+v", err)
 	}
 
 	if err := ch.QueueBind(
@@ -106,7 +109,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		false,
 		maxPriorityArgs,
 	); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not bind uri task rabbitMQ queue, error: %+v", err)
 	}
 
 	if err := ch.QueueBind(
@@ -116,7 +119,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		false,
 		maxPriorityArgs,
 	); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not bind daemon task rabbitMQ queue, error: %+v", err)
 	}
 
 	if err := ch.QueueBind(
@@ -126,7 +129,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 		false,
 		delayedQArgs,
 	); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not bind delayed daemon rabbitMQ queue, error: %+v", err)
 	}
 
 	rs := &RMQReceiverSender{
@@ -141,7 +144,7 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 	// schedule future check
 	err = rs.publishDelayed()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not publish delayed message on service start, error: %+v", err)
 	}
 
 	return rs, nil
@@ -150,11 +153,11 @@ func NewRMQReceiverSender(cfg *DwhQueueServiceConfig) (*RMQReceiverSender, error
 
 func (rs *RMQReceiverSender) Closer() error {
 	if err := rs.ch.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ channel, error: %+v", err)
 	}
 
 	if err := rs.conn.Close(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ connection, error: %+v", err)
 	}
 	return nil
 }
@@ -169,17 +172,21 @@ func (rs *RMQReceiverSender) GetTaskMessageChan() (<-chan amqp.Delivery, error) 
 		false,
 		nil,
 	)
-	return msgs, err
+	if err != nil {
+		return nil, fmt.Errorf("could not get rabbitMQ msg chan, error: %+v", err)
+	}
+
+	return msgs, nil
 }
 
 func (rs *RMQReceiverSender) PublishUriTask(url, owner, tokenId string) error {
-	ba, err := json.Marshal(&TokenInfo{
+	ba, err := json.Marshal(&dwh_common.TaskInfo{
 		TokenID: tokenId,
 		URL:     url,
 		Owner:   owner,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("could not marshal uriTask for rabbitMQ, error: %+v", err)
 	}
 
 	err = rs.ch.Publish(
@@ -191,9 +198,13 @@ func (rs *RMQReceiverSender) PublishUriTask(url, owner, tokenId string) error {
 			DeliveryMode: amqp.Persistent,
 			ContentType:  "application/json",
 			Body:         ba,
-			Priority:     uint8(RegularUpdatePriority),
+			Priority:     uint8(dwh_common.RegularUpdatePriority),
 		})
-	return err
+	if err != nil {
+		return fmt.Errorf("could not publish task to rabbitMQ, error: %+v", err)
+	}
+
+	return nil
 }
 
 func (rs *RMQReceiverSender) publishDelayed() error {
@@ -207,5 +218,9 @@ func (rs *RMQReceiverSender) publishDelayed() error {
 			ContentType:  "application/json",
 			Body:         []byte("ololo"),
 		})
-	return err
+	if err != nil {
+		return fmt.Errorf("could not publish delayed message rabbitMQ, error: %+v", err)
+	}
+
+	return nil
 }

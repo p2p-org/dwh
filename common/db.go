@@ -8,10 +8,13 @@ import (
 )
 
 var (
-	UserName   = "dgaming"
-	Password   = "dgaming"
-	DBName     = "marketplace"
-	ConnString = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", UserName, Password, DBName)
+	UserName = "dgaming"
+	Password = "dgaming"
+	DBName   = "marketplace"
+	DBPort   = 5432
+	DBHost   = "postgres"
+	//DBHost     = "localhost"
+	ConnString = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", DBHost, DBPort, UserName, Password, DBName)
 )
 
 func GetDB() (*gorm.DB, error) {

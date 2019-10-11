@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
+	stdLog "log"
 	"net/http"
 	"reflect"
 	"time"
 
-	"github.com/dgamingfoundation/dwh/imgservice"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,49 +18,38 @@ import (
 )
 
 type TokenMetadataWorker struct {
-	receiver           *RMQReceiver
+	receiver           *dwh_common.RMQReceiver
 	client             http.Client
-	cfg                *DwhQueueServiceConfig
+	cfg                *dwh_common.DwhCommonServiceConfig
 	mongoClient        *mongo.Client
 	mongoCollection    *mongo.Collection
 	ctx                context.Context
 	erc721SchemaLoader gojsonschema.JSONLoader
-	imgSender          *imgservice.RMQSender
-}
-
-func getMongoClient(cfg *DwhQueueServiceConfig) (*mongo.Client, error) {
-	uri := fmt.Sprintf(`mongodb://%s:%s@%s/%s`,
-		cfg.MongoUserName,
-		cfg.MongoUserPass,
-		cfg.MongoHost,
-		cfg.MongoDatabase,
-	)
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
-	return client, err
+	imgSender          *dwh_common.RMQSender
 }
 
 func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWorker, error) {
-	cfg := ReadDwhTokenMetadataServiceConfig(configFileName, configPath)
+	cfg := dwh_common.ReadCommonConfig(configFileName, configPath)
 
 	ctx := context.Background()
 
-	receiver, err := NewRMQReceiver(cfg)
+	receiver, err := dwh_common.NewRMQReceiver(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority, cfg.UriQueuePrefetchCount)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ receiver, error: %+v", err)
 	}
 
-	imgSender, err := imgservice.NewRMQSender(configFileName, configPath)
+	imgSender, err := dwh_common.NewRMQSender(cfg, cfg.ImgQueueName, cfg.ImgQueueMaxPriority)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create rabbitMQ sender, error: %+v", err)
 	}
 
-	mongoClient, err := getMongoClient(cfg)
+	mongoClient, err := dwh_common.GetMongoClient(cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not dial rabbitMQ, error: %+v", err)
 	}
 
 	if err = mongoClient.Connect(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not connect MongoDB, error: %+v", err)
 	}
 
 	mongoCollection := mongoClient.Database(cfg.MongoDatabase).Collection(cfg.MongoCollection)
@@ -69,9 +58,9 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 	keys := bson.D{{Key: "dwhData.lastChecked", Value: 1}}
 	s, err := mongoCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: keys}, opts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create MongoDB index, error: %+v", err)
 	}
-	log.Println("created index:", s)
+	stdLog.Println("created index:", s)
 
 	return &TokenMetadataWorker{
 		client:             http.Client{Timeout: time.Second * 15},
@@ -88,33 +77,35 @@ func NewTokenMetadataWorker(configFileName, configPath string) (*TokenMetadataWo
 func (tmw *TokenMetadataWorker) Closer() error {
 	err := tmw.receiver.Closer()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ receiver, error: %+v", err)
 	}
 	if err = tmw.imgSender.Closer(); err != nil {
-		return err
+		return fmt.Errorf("could not close rabbitMQ sender, error: %+v", err)
 	}
 	if err := tmw.mongoClient.Disconnect(tmw.ctx); err != nil {
-		return err
+		return fmt.Errorf("could not disconnect MongoDB client, error: %+v", err)
 	}
 	return nil
 }
 
 func (tmw *TokenMetadataWorker) Run() error {
-	msgs, err := tmw.receiver.GetUriMessageChan()
+	msgs, err := tmw.receiver.GetMessageChan()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get rabbitMQ msg chan, error: %+v", err)
 	}
 
 	for d := range msgs {
-		err = tmw.processMessage(d.Body)
+		err = tmw.processMessage(d.Body, dwh_common.ImgQueuePriority(d.Priority))
 		if err != nil {
-			fmt.Println("failed to process rabbitMQ message: ", err)
-			continue
+			stdLog.Println("failed to process rabbitMQ message: ", err)
+			// TODO continue needed?
+			// continue
 		}
 
 		err = d.Ack(false)
 		if err != nil {
-			fmt.Println("failed to ack to rabbitMQ: ", err)
+			stdLog.Println("failed to ack to rabbitMQ: ", err)
+			// TODO consider if fatal
 			continue
 		}
 
@@ -122,38 +113,39 @@ func (tmw *TokenMetadataWorker) Run() error {
 	return nil
 }
 
-func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
+func (tmw *TokenMetadataWorker) processMessage(msg []byte, priority dwh_common.ImgQueuePriority) error {
+	stdLog.Println("got message:", string(msg))
 	var (
-		rcvd     TokenInfo
+		rcvd     dwh_common.TaskInfo
 		metadata map[string]interface{}
 	)
 
 	err := json.Unmarshal(msg, &rcvd)
 	if err != nil {
-		return fmt.Errorf("unmarshal error: %v", err)
+		return fmt.Errorf("unmarshal error: %+v", err)
 	}
 
 	metadataBytes, err := tmw.getMetadata(rcvd.URL)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get metadata url, error: %+v", err)
 	}
 
 	isValid, err := tmw.isMetadataERC721(metadataBytes)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not verify metadata, error: %+v", err)
 	}
 
 	if err = bson.UnmarshalExtJSON(metadataBytes, false, &metadata); err != nil {
-		return err
+		return fmt.Errorf("could not unmarshal ext json, error: %+v", err)
 	}
 
 	if err := tmw.upsertTokenMetadata(&rcvd, metadata); err != nil {
-		return err
+		return fmt.Errorf("could not upsert token metadata, error: %+v", err)
 	}
 
 	if _, ok := metadata["image"]; isValid && ok {
-		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, rcvd.TokenID, tmw.cfg.ImgQueuePriority); err != nil {
-			return err
+		if err := tmw.imgSender.Publish(metadata["image"].(string), rcvd.Owner, rcvd.TokenID, priority); err != nil {
+			return fmt.Errorf("could not publish img task rabbitMQ, error: %+v", err)
 		}
 	}
 
@@ -163,12 +155,12 @@ func (tmw *TokenMetadataWorker) processMessage(msg []byte) error {
 func (tmw *TokenMetadataWorker) getMetadata(url string) ([]byte, error) {
 	resp, err := tmw.client.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not get url via http client, error: %+v", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not read response body, error: %+v", err)
 	}
 	return body, nil
 }
@@ -177,12 +169,12 @@ func (tmw *TokenMetadataWorker) isMetadataERC721(metadata []byte) (bool, error) 
 	metadataJsonLoader := gojsonschema.NewBytesLoader(metadata)
 	result, err := gojsonschema.Validate(tmw.erc721SchemaLoader, metadataJsonLoader)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not validate json schema, error: %+v", err)
 	}
 	return result.Valid(), nil
 }
 
-func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *TokenInfo, metadata map[string]interface{}) error {
+func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *dwh_common.TaskInfo, metadata map[string]interface{}) error {
 	var (
 		oldMetaData map[string]interface{}
 		err         error
@@ -192,7 +184,7 @@ func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *TokenInfo, metada
 
 	findOpts := []*options.FindOneOptions{{Projection: map[string]interface{}{"dwhData": 0, "_id": 0}}}
 	if err = tmw.mongoCollection.FindOne(tmw.ctx, filter, findOpts...).Decode(&oldMetaData); err != nil && err != mongo.ErrNoDocuments {
-		return err
+		return fmt.Errorf("could not find one in mongo collection, error: %+v", err)
 	}
 	tNow := time.Now().UTC()
 
@@ -211,7 +203,7 @@ func (tmw *TokenMetadataWorker) upsertTokenMetadata(tokenInfo *TokenInfo, metada
 	opts := []*options.UpdateOptions{{Upsert: &isUpsert}}
 
 	if _, err = tmw.mongoCollection.UpdateOne(tmw.ctx, filter, dataForUpsert, opts...); err != nil {
-		return err
+		return fmt.Errorf("could not update one in mongo collection, error: %+v", err)
 	}
 
 	return nil

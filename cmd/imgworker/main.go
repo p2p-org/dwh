@@ -1,18 +1,19 @@
 package main
 
 import (
-	"log"
+	stdLog "log"
 
-	"github.com/dgamingfoundation/dwh/imgservice"
+	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	"github.com/dgamingfoundation/dwh/x/imgresizer"
 )
 
 func main() {
-	worker, err := imgservice.NewImageProcessingWorker("config", "/root/")
+	worker, err := imgresizer.NewImageProcessingWorker(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
 	if err != nil {
 		panic(err)
 	}
 	defer worker.Closer()
 
-	log.Println("run image worker")
-	log.Println(worker.Run())
+	stdLog.Println("run image worker")
+	stdLog.Println(worker.Run())
 }
