@@ -208,7 +208,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 			continue
 		}
 		if txRes.Index < m.cursor.TxIndex {
-			log.Debugf("old transaction (%d < %d), skipping", txRes, m.cursor.TxIndex)
+			log.Debugf("old transaction (%d < %d), skipping", txRes.Index, m.cursor.TxIndex)
 			continue
 		}
 		log.Infof("processing transaction #%d at height %d", txRes.Index, txRes.Height)
