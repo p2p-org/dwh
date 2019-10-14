@@ -7,17 +7,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	_ "image/gif"
-	_ "image/jpeg"
+	"image/gif"
+	"image/jpeg"
 	"image/png"
-	_ "image/png"
+	"io"
 	"io/ioutil"
 	stdLog "log"
 	"net/http"
 	"time"
 
 	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	"github.com/h2non/filetype"
+	svg "github.com/h2non/go-is-svg"
 	"github.com/nfnt/resize"
+	"golang.org/x/image/bmp"
+	"golang.org/x/image/tiff"
+	"golang.org/x/image/webp"
 )
 
 type ImageProcessingWorker struct {
@@ -88,33 +93,45 @@ func (irw *ImageProcessingWorker) processMessage(msg []byte) error {
 		return fmt.Errorf("img resizer unmarshal error: %+v", err)
 	}
 
-	originalImg, err := irw.getImage(rcvd.URL)
+	originalImgBytes, err := irw.getImage(rcvd.URL)
 	if err != nil {
 		return fmt.Errorf("img resizer get image error: %+v", err)
 	}
-	for _, r := range irw.resolutions {
-		r := r
-		err := irw.resizeAndSendImage(originalImg, r, &rcvd)
-		if err != nil {
-			return fmt.Errorf("img resizer resizeAndSend image error: %+v", err)
+	originalImage, isVector, err := irw.decodeImage(originalImgBytes)
+	if err != nil {
+		return fmt.Errorf("could not decode image, error: %+v", err)
+	}
+
+	if isVector {
+		// need no conversion or resize
+		if err := irw.checkAndSendImage(originalImgBytes, dwh_common.Resolution{}, &rcvd); err != nil {
+			return fmt.Errorf("vector image checkAndSend error: %+v", err)
+		}
+	} else {
+		for _, r := range irw.resolutions {
+			r := r
+			err := irw.resizeAndSendRasterImage(originalImage, r, &rcvd)
+			if err != nil {
+				return fmt.Errorf("raster image resizeAndSend error: %+v", err)
+			}
 		}
 	}
 	return nil
 }
 
-func (irw *ImageProcessingWorker) getImage(imgUrl string) (image.Image, error) {
+func (irw *ImageProcessingWorker) getImage(imgUrl string) ([]byte, error) {
 	resp, err := irw.client.Get(imgUrl)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	img, _, err := image.Decode(resp.Body)
+	ba, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("could not decode image %s, error: %+v", imgUrl, err)
+		return nil, fmt.Errorf("could not read response body, error: %+v", err)
 	}
 
-	return img, nil
+	return ba, nil
 }
 
 func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution dwh_common.Resolution, info *dwh_common.TaskInfo) (bool, error) {
@@ -156,7 +173,7 @@ func (irw *ImageProcessingWorker) checkImgExistence(imgBytes []byte, resolution 
 	return repl.ImageExists, nil
 }
 
-func (irw *ImageProcessingWorker) resizeAndSendImage(
+func (irw *ImageProcessingWorker) resizeAndSendRasterImage(
 	originalImg image.Image,
 	resolution dwh_common.Resolution,
 	info *dwh_common.TaskInfo,
@@ -167,8 +184,15 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(
 	if err := irw.encoder.Encode(buf, img); err != nil {
 		return fmt.Errorf("encode image error: %+v", err)
 	}
+	return irw.checkAndSendImage(buf.Bytes(), resolution, info)
+}
 
-	ok, err := irw.checkImgExistence(buf.Bytes(), resolution, info)
+func (irw *ImageProcessingWorker) checkAndSendImage(
+	imgBytes []byte,
+	resolution dwh_common.Resolution,
+	info *dwh_common.TaskInfo,
+) error {
+	ok, err := irw.checkImgExistence(imgBytes, resolution, info)
 	if err != nil {
 		// no return, work further
 		stdLog.Println("checkImgExistence error:", err)
@@ -179,10 +203,75 @@ func (irw *ImageProcessingWorker) resizeAndSendImage(
 		return nil
 	}
 
+	err = irw.sendImage(imgBytes, resolution, info)
+	if err != nil {
+		return fmt.Errorf("could not send image, error: %+v", err)
+	}
+
+	return nil
+}
+
+func (irw *ImageProcessingWorker) decodeImage(
+	originalImgBytes []byte,
+) (image.Image, bool, error) {
+	if svg.IsSVG(originalImgBytes) {
+		return nil, true, nil
+	}
+
+	head := make([]byte, 261)
+	seekReader := bytes.NewReader(originalImgBytes)
+	if _, err := seekReader.Read(head); err != nil {
+		return nil, false, fmt.Errorf("could not read image head, error: %+v", err)
+	}
+
+	if !filetype.IsImage(head) {
+		return nil, false, fmt.Errorf("unknown image format")
+	}
+
+	t, err := filetype.Match(head)
+	if err != nil {
+		return nil, false, fmt.Errorf("could not guess image, error: %+v", err)
+	}
+	imgFormat := t.MIME.Value
+
+	// rewind reader
+	if _, err := seekReader.Seek(0, io.SeekStart); err != nil {
+		return nil, false, fmt.Errorf("could not rewind reader, error: %+v", err)
+	}
+
+	var originalImg image.Image
+	switch imgFormat {
+	case "image/bmp":
+		originalImg, err = bmp.Decode(seekReader)
+	case "image/webp":
+		originalImg, err = webp.Decode(seekReader)
+	case "image/tiff":
+		originalImg, err = tiff.Decode(seekReader)
+	case "image/jpeg":
+		originalImg, err = jpeg.Decode(seekReader)
+	case "image/gif":
+		originalImg, err = gif.Decode(seekReader)
+	case "image/png":
+		originalImg, err = png.Decode(seekReader)
+	default:
+		return nil, false, fmt.Errorf("could not decode image, error: unknown image format")
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("could not decode image, error: %+v", err)
+	}
+
+	return originalImg, false, nil
+}
+
+func (irw *ImageProcessingWorker) sendImage(
+	imgBytes []byte,
+	resolution dwh_common.Resolution,
+	info *dwh_common.TaskInfo,
+) error {
 	var gzipBuf bytes.Buffer
 	zw := gzip.NewWriter(&gzipBuf)
 
-	_, err = zw.Write(buf.Bytes())
+	_, err := zw.Write(imgBytes)
 	if err != nil {
 		return fmt.Errorf("gzip write error: %+v", err)
 	}
