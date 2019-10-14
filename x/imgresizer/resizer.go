@@ -68,7 +68,7 @@ func (irw *ImageProcessingWorker) Run() error {
 	}
 
 	for d := range msgs {
-		err = irw.processMessage(d.Body)
+		err = irw.ProcessMessage(d.Body)
 		if err != nil {
 			stdLog.Println("failed to process rabbitMQ message: ", err)
 			// TODO continue?
@@ -85,7 +85,7 @@ func (irw *ImageProcessingWorker) Run() error {
 	return nil
 }
 
-func (irw *ImageProcessingWorker) processMessage(msg []byte) error {
+func (irw *ImageProcessingWorker) ProcessMessage(msg []byte) error {
 	fmt.Println("Got message", string(msg))
 	var rcvd dwh_common.TaskInfo
 	err := json.Unmarshal(msg, &rcvd)
