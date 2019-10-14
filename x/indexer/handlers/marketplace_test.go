@@ -1,17 +1,24 @@
 package handlers_test
 
 import (
+	"os/user"
+	"path"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
+	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dwh/common"
 	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	app "github.com/dgamingfoundation/marketplace"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
+	usr, err := user.Current()
+	if err != nil {
+		t.Errorf("failed to get current user, exiting: %v", err)
+		return
+	}
+
 	db, err := common.GetDB()
 	if err != nil {
 		t.Errorf("failed to establish database connection: %v", err)
@@ -23,8 +30,18 @@ func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 		}
 	}()
 	cdc := app.MakeCodec()
-	ctx := cliContext.NewCLIContext().WithCodec(cdc)
-	handler := handlers.NewMarketplaceHandler(ctx)
+
+	cliCtx, err := cliContext.NewContext(
+		"mpchain",
+		"tcp://localhost:26657",
+		path.Join(usr.HomeDir, ".mpcli"))
+	if err != nil {
+		t.Errorf("failed to create cliCtx connection: %v", err)
+		return
+	}
+	cliCtx = cliCtx.WithCodec(cdc)
+
+	handler := handlers.NewMarketplaceHandler(cliCtx)
 	db, err = handler.Reset(db)
 	if err != nil {
 		t.Errorf("failed to Reset db: %v", err)
