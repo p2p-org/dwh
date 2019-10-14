@@ -15,7 +15,6 @@ var testImages = []string{
 	`{"owner":"user5","token_id":"TOKEN_5","url":"https://i.pinimg.com/originals/d5/44/ff/d544ffca4ecb461fc19da7e384cbc6d5.gif"}`,
 	`{"owner":"user6","token_id":"TOKEN_6","url":"https://www.fileformat.info/format/bmp/sample/7223b4e69ae34afc8981bc11a6bb7e40/download"}`,
 	`{"owner":"user7","token_id":"TOKEN_7","url":"https://res.cloudinary.com/ireaderinokun/image/upload/v1542636766/bitsofcode/comparison.webp"}`,
-	//`{"owner":"user5","token_id":"TOKEN_5","url":""}`,
 }
 
 func TestRun(t *testing.T) {
