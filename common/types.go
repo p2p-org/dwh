@@ -54,7 +54,6 @@ func NewOffer(offer *types.Offer, tokenID string) *Offer {
 	return &Offer{
 		OfferID:               offer.ID,
 		Buyer:                 offer.Buyer.String(),
-		Price:                 offer.Price.String(),
 		BuyerBeneficiary:      offer.BuyerBeneficiary.String(),
 		BeneficiaryCommission: offer.BeneficiaryCommission,
 		TokenID:               tokenID,
