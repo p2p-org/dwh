@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190903125924-29b8161ac6df
 	github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190829124036-5189e32ac7d3
-	github.com/dgamingfoundation/marketplace v0.0.0-20190921170316-3f75ec596be6
+	github.com/dgamingfoundation/marketplace v0.0.0-20191015133231-1b11b20c9d8f
 	github.com/gorilla/mux v1.7.0
 	github.com/jinzhu/gorm v1.9.10
 	github.com/lib/pq v1.1.1
