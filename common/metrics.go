@@ -24,6 +24,7 @@ const (
 	PrometheusValueMsgTransferFungibleTokens = "MsgTransferFungibleTokens"
 	PrometheusValueMsgMakeOffer              = "MsgMakeOffer"
 	PrometheusValueMsgAcceptOffer            = "MsgAcceptOffer"
+	PrometheusValueMsgRemoveOffer            = "MsgRemoveOffer"
 	PrometheusValueMsgPutNFTOnAuction        = "MsgPutNFTOnAuction"
 	PrometheusValueMsgRemoveFromAuction      = "MsgRemoveFromAuction"
 	PrometheusValueMsgMakeBidOnAuction       = "MsgMakeBidOnAuction"

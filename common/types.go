@@ -23,7 +23,7 @@ type NFT struct {
 	// Auction-related fields
 	BuyoutPrice  string
 	OpeningPrice string
-	TimeToSell   time.Duration
+	TimeToSell   time.Time
 
 	// Relations
 	Offers []Offer      `gorm:"ForeignKey:TokenID"`
