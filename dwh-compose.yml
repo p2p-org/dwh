@@ -4,7 +4,8 @@ services:
   indexer:
     image: "dwh_indexer:latest"
     volumes:
-      - ./volumes/indexer.state:/root/indexer.state
+#      - ./volumes/indexer.state:/root/indexer.state
+      - dwh-data:/root/indexer.state
     restart: unless-stopped
     networks:
       - dwh-tier
@@ -15,7 +16,8 @@ services:
     ports:
       - "11535:11535"
     volumes:
-      - ./volumes/img_storage:/root/dwh_storage
+#      - ./volumes/img_storage:/root/dwh_storage
+      - dwh-data:/root/dwh_storage
     expose:
       - 11535
     restart: unless-stopped
@@ -47,3 +49,6 @@ services:
 networks:
   dwh-tier:
     driver: bridge
+
+volumes:
+  dwh-data:

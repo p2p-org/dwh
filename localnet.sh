@@ -25,9 +25,11 @@ while test $# -gt 0; do
       echo " "
       echo "options:"
       echo "help                        show brief help"
-      echo "start                       start all containers; images must be built"
-      echo "stop                        removes all containers"
-      echo "restart                     removes containers and starts them without rebuild; equals stop && start"
+      echo "up                          create & start all containers; images must be built"
+      echo "down                        removes all containers"
+      echo "reset                       removes containers, create and starts them without rebuild; equals down && up"
+      echo "start                       start all stopped containers without recreation"
+      echo "stop                        stop all running containers without data loss"
       echo "rebuild                     rebuild dwh images:
                             imgstorage, imgworker, indexer, mongoDaemon, tokenMetadataWorker"
       echo "rebuild-mp                  rebuild marketplace image"
@@ -36,15 +38,34 @@ while test $# -gt 0; do
       echo "purge                       remove all containers, delete local files"
       exit 0
       ;;
-    start)
+    up)
       docker-compose -f infrastructure-compose.yml up -d
       sleep 24
       docker-compose -f dwh-compose.yml up -d --scale token_meta_data=2 --scale img_worker=2
       exit 0
       ;;
+    down)
+      docker-compose -f dwh-compose.yml down -v
+      docker-compose -f infrastructure-compose.yml down -v
+      sleep 5
+      docker volume prune -f
+      exit 0
+      ;;
+    reset)
+      $cur_path/$0 down
+      $cur_path/$0 up
+      exit 0
+      ;;
+    start)
+#      docker-compose -f infrastructure-compose.yml start
+#      docker-compose -f dwh-compose.yml start
+      $cur_path/$0 up
+      exit 0
+      ;;
     stop)
-      docker-compose -f dwh-compose.yml down
-      docker-compose -f infrastructure-compose.yml down
+#      docker-compose -f dwh-compose.yml stop
+#      docker-compose -f infrastructure-compose.yml stop
+      $cur_path/$0 down
       exit 0
       ;;
     restart)
@@ -86,8 +107,30 @@ while test $# -gt 0; do
 
       exit 0
       ;;
+    seed)
+      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
+      docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data.sh
+
+      exit 0
+      ;;
+    seed2)
+      docker cp gen_marketplace_data2.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
+      docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data2.sh
+
+      exit 0
+      ;;
+    logs-i)
+      docker-compose -f dwh-compose.yml logs -f indexer
+
+      exit 0
+      ;;
+    logs-m)
+      docker-compose -f infrastructure-compose.yml logs --follow marketplace
+
+      exit 0
+      ;;
     purge)
-      $cur_path/$0 stop
+      $cur_path/$0 down
       rm -fr $cur_path/vendor
       rm -fr $cur_path/volumes
 
