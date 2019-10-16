@@ -429,29 +429,41 @@ func (m *MarketplaceHandler) RouterKeys() []string {
 }
 
 func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
-	db = db.CreateTable(&common.NFT{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Nfts: %v", db.Error)
+	if !db.HasTable(&common.NFT{}) {
+		db = db.CreateTable(&common.NFT{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Nfts: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.FungibleToken{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table FungibleTokens: %v", db.Error)
+	if !db.HasTable(&common.FungibleToken{}) {
+		db = db.CreateTable(&common.FungibleToken{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table FungibleTokens: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.FungibleTokenTransfer{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table FungibleTokenTransfers: %v", db.Error)
+	if !db.HasTable(&common.FungibleTokenTransfer{}) {
+		db = db.CreateTable(&common.FungibleTokenTransfer{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table FungibleTokenTransfers: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.User{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Users: %v", db.Error)
+	if !db.HasTable(&common.User{}) {
+		db = db.CreateTable(&common.User{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Users: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.Offer{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Offers: %v", db.Error)
+	if !db.HasTable(&common.Offer{}) {
+		db = db.CreateTable(&common.Offer{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Offers: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.AuctionBid{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table AuctionBids: %v", db.Error)
+	if !db.HasTable(&common.AuctionBid{}) {
+		db = db.CreateTable(&common.AuctionBid{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table AuctionBids: %v", db.Error)
+		}
 	}
 
 	db = db.Model(&common.NFT{}).AddForeignKey(

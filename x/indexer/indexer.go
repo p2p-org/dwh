@@ -143,13 +143,17 @@ func (m *Indexer) setupIndexerTables(reset bool) error {
 			return fmt.Errorf("failed to drop table txes: %v", m.db.Error)
 		}
 	}
-	m.db = m.db.CreateTable(&common.Tx{})
-	if m.db.Error != nil {
-		return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+	if !m.db.HasTable(&common.Tx{}) {
+		m.db = m.db.CreateTable(&common.Tx{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+		}
 	}
-	m.db = m.db.CreateTable(&common.Message{})
-	if m.db.Error != nil {
-		return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+	if !m.db.HasTable(&common.Message{}) {
+		m.db = m.db.CreateTable(&common.Message{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+		}
 	}
 	m.db = m.db.Model(&common.Message{}).AddForeignKey(
 		"tx_id", "txes(id)", "CASCADE", "CASCADE")
@@ -204,7 +208,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 			continue
 		}
 		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
-			log.Debugf("transaction %s failed (code %d), skipping", txBytes.String(), txRes.TxResult.Code)
+			log.Debugf("transaction %s failed (code %d), skipping. Log: %s", txBytes.String(), txRes.TxResult.Code, txRes.TxResult.Log)
 			continue
 		}
 		if txRes.Index < m.cursor.TxIndex {
