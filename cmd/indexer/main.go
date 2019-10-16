@@ -50,7 +50,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create new indexer: %v", err)
 	}
-	if err := idxr.Setup(true); err != nil {
+	if err := idxr.Setup(idxrCfg.ResetDatabase); err != nil {
 		log.Fatalf("failed to setup Indexer: %v", err)
 	}
 

@@ -14,7 +14,8 @@ const (
 )
 
 type IndexerCfg struct {
-	StatePath string `mapstructure:"state_path"`
+	StatePath     string `mapstructure:"state_path"`
+	ResetDatabase bool   `mapstructure:"reset_database"`
 }
 
 type RabbitMQCfg struct {
@@ -78,7 +79,8 @@ type DwhCommonServiceConfig struct {
 func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
 	return &DwhCommonServiceConfig{
 		IndexerCfg: IndexerCfg{
-			StatePath: "./indexer.state",
+			StatePath:     "./indexer.state",
+			ResetDatabase: false,
 		},
 
 		RabbitMQCfg: RabbitMQCfg{
