@@ -1,5 +1,6 @@
 [indexer]
 	state_path = "./indexer.state"
+	reset_database = false
 
 [rabbitmq]
 	queue_scheme = "amqp"
