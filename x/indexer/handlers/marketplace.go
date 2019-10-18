@@ -329,19 +329,21 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 	case mptypes.MsgAcceptOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgAcceptOffer)
 
-		var offers []*common.Offer
-		db = db.Where("token_id = ?", value.TokenID).Find(&offers)
-		if db.Error != nil {
-			return fmt.Errorf("failed to find offers (MsgAcceptOffer): %v", db.Error)
-		}
-		var offer = &common.Offer{}
-		for _, offerCandidate := range offers {
-			if offerCandidate.OfferID == value.OfferID {
-				*offer = *offerCandidate
-			}
+		var offer = common.Offer{}
+		if err := db.Table("offers").Where("token_id = ? AND offer_id = ?", value.TokenID, value.OfferID).
+			Row().Scan(&offer.ID, &offer.CreatedAt, &offer.UpdatedAt, &offer.DeletedAt, &offer.OfferID, &offer.Buyer,
+			&offer.Price, &offer.BuyerBeneficiary, &offer.BeneficiaryCommission, &offer.TokenID); err != nil {
+			return fmt.Errorf("failed to scan offers (MsgAcceptOffer): %v", err)
 		}
 		if offer.ID == 0 {
 			return fmt.Errorf("unknown offer ID (not found in related offers): %s", value.OfferID)
+		}
+		buyerAddress, err := sdk.AccAddressFromBech32(offer.Buyer)
+		if err != nil {
+			return fmt.Errorf("failed to get buyer address from Bech32: %v", err)
+		}
+		if _, err := m.findOrCreateUser(db, buyerAddress); err != nil {
+			return err
 		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.TokenID).UpdateColumns(map[string]interface{}{
 			"OwnerAddress": offer.Buyer,
