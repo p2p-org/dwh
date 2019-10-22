@@ -8,11 +8,9 @@ import (
 	"sync"
 	"time"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	cliCtx "github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/dwh/common"
+	common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
@@ -32,9 +30,10 @@ var (
 
 type Indexer struct {
 	mu        sync.Mutex
-	ctx       context.Context    // Global context for Indexer.
-	cancel    context.CancelFunc // Used to stop main processing loop.
-	cliCtx    cliCtx.Context     // Cosmos CLIContext, used to talk to node.
+	ctx       context.Context                // Global context for Indexer.
+	cfg       *common.DwhCommonServiceConfig // Config for all services
+	cancel    context.CancelFunc             // Used to stop main processing loop.
+	cliCtx    cliCtx.Context                 // Cosmos CLIContext, used to talk to node.
 	txDecoder sdk.TxDecoder
 	db        *gorm.DB                       // Database to store data to.
 	stateDB   *leveldb.DB                    // State database to keep indexer state.
@@ -57,7 +56,7 @@ func WithHandler(handler handlers.MsgHandler) Option {
 
 func NewIndexer(
 	ctx context.Context,
-	cfg *dwh_common.DwhCommonServiceConfig,
+	cfg *common.DwhCommonServiceConfig,
 	cliCtx cliCtx.Context,
 	txDecoder sdk.TxDecoder,
 	db *gorm.DB,
@@ -72,6 +71,7 @@ func NewIndexer(
 	idxr := &Indexer{
 		mu:        sync.Mutex{},
 		ctx:       ctx,
+		cfg:       cfg,
 		cancel:    cancel,
 		cliCtx:    cliCtx,
 		txDecoder: txDecoder,
@@ -143,13 +143,17 @@ func (m *Indexer) setupIndexerTables(reset bool) error {
 			return fmt.Errorf("failed to drop table txes: %v", m.db.Error)
 		}
 	}
-	m.db = m.db.CreateTable(&common.Tx{})
-	if m.db.Error != nil {
-		return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+	if !m.db.HasTable(&common.Tx{}) {
+		m.db = m.db.CreateTable(&common.Tx{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create table txes: %v", m.db.Error)
+		}
 	}
-	m.db = m.db.CreateTable(&common.Message{})
-	if m.db.Error != nil {
-		return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+	if !m.db.HasTable(&common.Message{}) {
+		m.db = m.db.CreateTable(&common.Message{})
+		if m.db.Error != nil {
+			return fmt.Errorf("failed to create table messages: %v", m.db.Error)
+		}
 	}
 	m.db = m.db.Model(&common.Message{}).AddForeignKey(
 		"tx_id", "txes(id)", "CASCADE", "CASCADE")
@@ -204,7 +208,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 			continue
 		}
 		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
-			log.Debugf("transaction %s failed (code %d), skipping", txBytes.String(), txRes.TxResult.Code)
+			log.Debugf("transaction %s failed (code %d), skipping. Log: %s", txBytes.String(), txRes.TxResult.Code, txRes.TxResult.Log)
 			continue
 		}
 		if txRes.Index < m.cursor.TxIndex {

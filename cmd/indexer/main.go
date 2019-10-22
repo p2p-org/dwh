@@ -5,8 +5,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/dgamingfoundation/dwh/common"
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/dgamingfoundation/dwh/x/indexer"
 	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	_ "github.com/lib/pq"
@@ -26,8 +25,9 @@ func main() {
 			log.Println(http.ListenAndServe(viper.GetString(common.PprofHostPortFlag), nil))
 		}()
 	}
+	idxrCfg := common.ReadCommonConfig(common.DefaultConfigName, common.DefaultConfigPath)
 
-	db, err := common.GetDB()
+	db, err := common.GetDB(idxrCfg)
 	if err != nil {
 		log.Fatalf("failed to establish database connection: %v", err)
 	}
@@ -37,20 +37,18 @@ func main() {
 		}
 	}()
 
-	cliCtx, txDecoder, err := handlers.GetEnv()
+	cliCtx, txDecoder, err := handlers.GetEnv(idxrCfg)
 	if err != nil {
 		log.Fatalf("failed to get env: %v", err)
 	}
 
-	idxrCfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
-	idxrCfg.StatePath = viper.GetString(common.StatePathFlag)
 	idxr, err := indexer.NewIndexer(ctx, idxrCfg, cliCtx, txDecoder, db,
 		indexer.WithHandler(handlers.NewMarketplaceHandler(cliCtx)),
 	)
 	if err != nil {
 		log.Fatalf("failed to create new indexer: %v", err)
 	}
-	if err := idxr.Setup(true); err != nil {
+	if err := idxr.Setup(idxrCfg.ResetDatabase); err != nil {
 		log.Fatalf("failed to setup Indexer: %v", err)
 	}
 

@@ -5,7 +5,26 @@ import (
 	stdLog "log"
 	"net/url"
 
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
+)
+
+const (
+	IndexerConfigFileName = "indexer"
+)
+
+const (
+	PrometheusEnabledFlag  = "prometheus_enabled"
+	PrometheusHostPortFlag = "prort=5432 user=dgaming password=dgaming dbname=marketplace sslmode=disableometheus_host_port"
+	PprofEnabledFlag       = "pprof_enabled"
+	PprofHostPortFlag      = "pprof_host_port"
+	VfrHomeFlag            = "vfr_home"
+	HeightFlag             = "height"
+	TrustNodeFlag          = "trust_node"
+	BroadcastModeFlag      = "broadcast_mode"
+	GenOnlyFlag            = "gen_only"
+	UserNameFlag           = "user_name"
 )
 
 const (
@@ -14,7 +33,11 @@ const (
 )
 
 type IndexerCfg struct {
-	StatePath string `mapstructure:"state_path"`
+	StatePath       string `mapstructure:"state_path"`
+	ResetDatabase   bool   `mapstructure:"reset_database"`
+	MarketplaceAddr string `mapstructure:"marketplace_addr"`
+	ChainID         string `mapstructure:"chain_id"`
+	CliHome         string `mapstructure:"cli_home"`
 }
 
 type RabbitMQCfg struct {
@@ -65,6 +88,14 @@ type MongoDBCfg struct {
 	MongoCollection string `mapstructure:"mongo_collection"`
 }
 
+type PostgresCfg struct {
+	PostgresUserName string `mapstructure:"postgres_user_name"`
+	PostgresUserPass string `mapstructure:"postgres_user_pass"`
+	PostgresHost     string `mapstructure:"postgres_host"`
+	PostgresPort     int    `mapstructure:"postgres_port"`
+	PostgresDBName   string `mapstructure:"postgres_db_name"`
+}
+
 type DwhCommonServiceConfig struct {
 	IndexerCfg              `mapstructure:"indexer"`
 	RabbitMQCfg             `mapstructure:"rabbitmq"`
@@ -73,12 +104,17 @@ type DwhCommonServiceConfig struct {
 	TokenMetaDataServiceCfg `mapstructure:"token_metadata_service"`
 	MongoDaemonServiceCfg   `mapstructure:"mongo_daemon_service"`
 	MongoDBCfg              `mapstructure:"mongo_db"`
+	PostgresCfg             `mapstructure:"postgres_db"`
 }
 
 func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
 	return &DwhCommonServiceConfig{
 		IndexerCfg: IndexerCfg{
-			StatePath: "./indexer.state",
+			StatePath:       "./indexer.state",
+			ResetDatabase:   false,
+			MarketplaceAddr: "tcp://localhost:26657",
+			CliHome:         ".mpcli",
+			ChainID:         "mpchain",
 		},
 
 		RabbitMQCfg: RabbitMQCfg{
@@ -130,6 +166,14 @@ func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
 			MongoDatabase:   "dgaming",
 			MongoCollection: "token_metadata",
 		},
+
+		PostgresCfg: PostgresCfg{
+			PostgresUserName: "dgaming",
+			PostgresUserPass: "dgaming",
+			PostgresHost:     "localhost",
+			PostgresPort:     5432,
+			PostgresDBName:   "marketplace",
+		},
 	}
 }
 
@@ -160,4 +204,42 @@ func ReadCommonConfig(configName, path string) *DwhCommonServiceConfig {
 	}
 
 	return cfg
+}
+
+func InitConfig() {
+	viper.SetDefault(PrometheusEnabledFlag, true)
+	viper.SetDefault(PrometheusHostPortFlag, "localhost:9081")
+	viper.SetDefault(PprofEnabledFlag, true)
+	viper.SetDefault(PprofHostPortFlag, "localhost:6061")
+	viper.SetDefault(VfrHomeFlag, "")
+	viper.SetDefault(HeightFlag, 0)
+	viper.SetDefault(TrustNodeFlag, false)
+	viper.SetDefault(BroadcastModeFlag, "sync")
+	viper.SetDefault(GenOnlyFlag, false)
+	viper.SetDefault(UserNameFlag, "user1")
+	viper.SetConfigName(IndexerConfigFileName)
+	viper.AddConfigPath("$HOME/.dwh/config")
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			stdLog.Println("config file not found, using default configuration")
+		} else {
+			stdLog.Fatalf("failed to parse config file, exiting: %v", err)
+		}
+	}
+}
+
+func GetDB(cfg *DwhCommonServiceConfig) (*gorm.DB, error) {
+	ConnString := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.PostgresHost,
+		cfg.PostgresPort,
+		cfg.PostgresUserName,
+		cfg.PostgresUserPass,
+		cfg.PostgresDBName,
+	)
+	stdLog.Println("ConnString:", ConnString)
+
+	return gorm.Open("postgres", ConnString)
 }
