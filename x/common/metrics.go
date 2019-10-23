@@ -1,4 +1,4 @@
-package common
+package dwh_common
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,6 +24,7 @@ const (
 	PrometheusValueMsgTransferFungibleTokens = "MsgTransferFungibleTokens"
 	PrometheusValueMsgMakeOffer              = "MsgMakeOffer"
 	PrometheusValueMsgAcceptOffer            = "MsgAcceptOffer"
+	PrometheusValueMsgRemoveOffer            = "MsgRemoveOffer"
 	PrometheusValueMsgPutNFTOnAuction        = "MsgPutNFTOnAuction"
 	PrometheusValueMsgRemoveFromAuction      = "MsgRemoveFromAuction"
 	PrometheusValueMsgMakeBidOnAuction       = "MsgMakeBidOnAuction"

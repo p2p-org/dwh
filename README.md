@@ -155,6 +155,43 @@ Response:
 }
 ```
 
+### How to start full DWH bundle locally
+
+Full DWH bundle includes:
+
+- Marketplace
+- PostgreSQL
+- MongoDB
+- RabbitMQ
+- DWH indexer
+- GraphQL service
+- Image Storage
+- Image Worker (downloads, converts and resizes images for storage)
+- TokenMetadataWorker (verifies token metadata and stores it to mongo, creates tasks for image worker)
+- MongoDaemon (MongoDB collection refresher service)
+
+Important:
+- docker needed
+- marketplace must be in ./../marketplace
+
+to run from dwh folder:
+```bash
+./localnet.sh 
+```
+You might need to run it as superuser.
+
+Options:
+```bash
+help            show brief help
+start           start all containers; images must be built
+stop            removes all containers
+restart         removes containers and starts them without rebuild; equals stop && start
+rebuild         rebuild dwh images: imgstorage, imgworker, indexer, mongoDaemon, tokenMetadataWorker
+rebuild-mp      rebuild marketplace image
+rebuild-all     rebuild all docker images, including marketplace IMPORTANT: marketplace src MUST be in ./../marketplace
+purge           remove all containers, delete local files
+```
+
 ### Writing your own module for DWH
 
 DWH codebase is organized with extensibility in mind. If you have a Cosmos application and want to write a DWH module to be able to browse the application data, you should check out the `MsgHandler` interface in `handlers/interface.go`:

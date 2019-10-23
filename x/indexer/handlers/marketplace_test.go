@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/dwh/common"
+	common "github.com/dgamingfoundation/dwh/x/common"
 	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
 	app "github.com/dgamingfoundation/marketplace"
 	"github.com/stretchr/testify/require"

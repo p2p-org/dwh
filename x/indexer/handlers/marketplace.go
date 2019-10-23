@@ -5,15 +5,16 @@ import (
 	"errors"
 	"fmt"
 	stdLog "log"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/dwh/common"
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	common "github.com/dgamingfoundation/dwh/x/common"
 	app "github.com/dgamingfoundation/marketplace"
+	appTypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	mptypes "github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
 	"github.com/prometheus/common/log"
@@ -25,14 +26,14 @@ type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
 	msgMetrics *common.MsgMetrics
-	uriSender  *dwh_common.RMQSender
+	uriSender  *common.RMQSender
 }
 
 func NewMarketplaceHandler(cliCtx cliContext.Context) MsgHandler {
 	msgMetr := common.NewPrometheusMsgMetrics("marketplace")
-	cfg := dwh_common.ReadCommonConfig(dwh_common.DefaultConfigName, dwh_common.DefaultConfigPath)
+	cfg := common.ReadCommonConfig(common.DefaultConfigName, common.DefaultConfigPath)
 
-	sender, err := dwh_common.NewRMQSender(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority)
+	sender, err := common.NewRMQSender(cfg, cfg.UriQueueName, cfg.UriQueueMaxPriority)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -110,7 +111,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to create nft: %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.TokenURI, value.Recipient.String(), value.ID, dwh_common.FreshlyMadePriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Recipient.String(), value.ID, common.FreshlyMadePriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
@@ -125,7 +126,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgEditNFTMetadata): %v", db.Error)
 		}
-		if err := m.uriSender.Publish(value.TokenURI, value.Sender.String(), value.ID, dwh_common.ForcedUpdatesPriority); err != nil {
+		if err := m.uriSender.Publish(value.TokenURI, value.Sender.String(), value.ID, common.ForcedUpdatesPriority); err != nil {
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)
@@ -139,6 +140,13 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
+		}
+		tokenInfo, err := m.queryNFT(value.ID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgTransferNFT): %v", value.ID, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Sender.String(), value.ID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
 	case mptypes.MsgPutNFTOnMarket:
@@ -173,6 +181,13 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgBuyNFT): %v", db.Error)
 		}
+		tokenInfo, err := m.queryNFT(value.TokenID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgBuyNFT): %v", value.TokenID, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Buyer.String(), value.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBuyNFT)
 	case mptypes.MsgPutNFTOnAuction:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgPutNFTOnAuction)
@@ -181,7 +196,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			"BuyoutPrice":       value.BuyoutPrice.String(),
 			"OpeningPrice":      value.OpeningPrice.String(),
 			"SellerBeneficiary": value.Beneficiary.String(),
-			"TimeToSell":        value.TimeToSell.String(),
+			"TimeToSell":        value.TimeToSell,
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgPutNFTOnAuction): %v", db.Error)
@@ -194,7 +209,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			"BuyoutPrice":       sdk.Coins{}.String(),
 			"OpeningPrice":      sdk.Coins{}.String(),
 			"SellerBeneficiary": "",
-			"TimeToSell":        0,
+			"TimeToSell":        time.Time{},
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgRemoveNFTFromAuction): %v", db.Error)
@@ -216,7 +231,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 				"BuyoutPrice":       sdk.Coins{}.String(),
 				"OpeningPrice":      sdk.Coins{}.String(),
 				"SellerBeneficiary": "",
-				"TimeToSell":        0,
+				"TimeToSell":        time.Time{},
 			})
 			if db.Error != nil {
 				return fmt.Errorf("failed to update token (MsgMakeBidOnAuction): %v", db.Error)
@@ -247,7 +262,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			"BuyoutPrice":       sdk.Coins{}.String(),
 			"OpeningPrice":      sdk.Coins{}.String(),
 			"SellerBeneficiary": "",
-			"TimeToSell":        0,
+			"TimeToSell":        time.Time{},
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to transfer update token (MsgBuyoutOnAuction): %v", db.Error)
@@ -255,6 +270,13 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		db.Where("token_id = ?", value.TokenID).Delete(&common.AuctionBid{})
 		if db.Error != nil {
 			return fmt.Errorf("failed to delete auction bids (MsgBuyoutOnAuction): %v", db.Error)
+		}
+		tokenInfo, err := m.queryNFT(value.TokenID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgBuyoutOnAuction): %v", value.TokenID, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Buyer.String(), value.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBuyoutOnAuction)
 	case mptypes.MsgFinishAuction:
@@ -269,12 +291,19 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			"BuyoutPrice":       sdk.Coins{}.String(),
 			"OpeningPrice":      sdk.Coins{}.String(),
 			"SellerBeneficiary": "",
-			"TimeToSell":        0,
+			"TimeToSell":        time.Time{},
 		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to update nft (MsgFinishAuction): %v", db.Error)
 		}
 		db.Where("token_id = ?", value.TokenID).Delete(&common.AuctionBid{})
+		tokenInfo, err := m.queryNFT(value.TokenID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgFinishAuction): %v", value.TokenID, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, newOwner, value.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgFinishAuction)
 	case mptypes.MsgMakeOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMakeOffer)
@@ -299,19 +328,21 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 	case mptypes.MsgAcceptOffer:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgAcceptOffer)
 
-		var offers []*common.Offer
-		db = db.Where("token_id = ?", value.TokenID).Find(&offers)
-		if db.Error != nil {
-			return fmt.Errorf("failed to find offers (MsgAcceptOffer): %v", db.Error)
-		}
-		var offer = &common.Offer{}
-		for _, offerCandidate := range offers {
-			if offerCandidate.OfferID == value.OfferID {
-				*offer = *offerCandidate
-			}
+		var offer = common.Offer{}
+		if err := db.Table("offers").Where("token_id = ? AND offer_id = ?", value.TokenID, value.OfferID).
+			Row().Scan(&offer.ID, &offer.CreatedAt, &offer.UpdatedAt, &offer.DeletedAt, &offer.OfferID, &offer.Buyer,
+			&offer.Price, &offer.BuyerBeneficiary, &offer.BeneficiaryCommission, &offer.TokenID); err != nil {
+			return fmt.Errorf("failed to scan offers (MsgAcceptOffer): %v", err)
 		}
 		if offer.ID == 0 {
 			return fmt.Errorf("unknown offer ID (not found in related offers): %s", value.OfferID)
+		}
+		buyerAddress, err := sdk.AccAddressFromBech32(offer.Buyer)
+		if err != nil {
+			return fmt.Errorf("failed to get buyer address from Bech32: %v", err)
+		}
+		if _, err := m.findOrCreateUser(db, buyerAddress); err != nil {
+			return err
 		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.TokenID).UpdateColumns(map[string]interface{}{
 			"OwnerAddress": offer.Buyer,
@@ -323,7 +354,32 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to delete offers (MsgAcceptOffer): %v", db.Error)
 		}
+		tokenInfo, err := m.queryNFT(value.TokenID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgAcceptOffer): %v", value.TokenID, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, offer.Buyer, value.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgAcceptOffer)
+	case mptypes.MsgRemoveOffer:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgRemoveOffer)
+
+		db.Where("token_id = ? AND offer_id = ?", value.TokenID, value.OfferID).Delete(&common.Offer{})
+		if db.Error != nil {
+			return fmt.Errorf("failed to delete offers (MsgRemoveOffer): %v", db.Error)
+		}
+
+		tokenInfo, err := m.queryNFT(value.TokenID)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgRemoveOffer): %v", value.TokenID, err)
+		}
+
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, tokenInfo.Owner.String(), value.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
+
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveOffer)
 	case mptypes.MsgCreateFungibleToken:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgCreateFungibleToken)
 		if _, err := m.findOrCreateUser(db, value.Creator); err != nil {
@@ -374,29 +430,41 @@ func (m *MarketplaceHandler) RouterKeys() []string {
 }
 
 func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
-	db = db.CreateTable(&common.NFT{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Nfts: %v", db.Error)
+	if !db.HasTable(&common.NFT{}) {
+		db = db.CreateTable(&common.NFT{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Nfts: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.FungibleToken{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table FungibleTokens: %v", db.Error)
+	if !db.HasTable(&common.FungibleToken{}) {
+		db = db.CreateTable(&common.FungibleToken{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table FungibleTokens: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.FungibleTokenTransfer{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table FungibleTokenTransfers: %v", db.Error)
+	if !db.HasTable(&common.FungibleTokenTransfer{}) {
+		db = db.CreateTable(&common.FungibleTokenTransfer{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table FungibleTokenTransfers: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.User{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Users: %v", db.Error)
+	if !db.HasTable(&common.User{}) {
+		db = db.CreateTable(&common.User{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Users: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.Offer{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table Offers: %v", db.Error)
+	if !db.HasTable(&common.Offer{}) {
+		db = db.CreateTable(&common.Offer{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table Offers: %v", db.Error)
+		}
 	}
-	db = db.CreateTable(&common.AuctionBid{})
-	if db.Error != nil {
-		return nil, fmt.Errorf("failed to create table AuctionBids: %v", db.Error)
+	if !db.HasTable(&common.AuctionBid{}) {
+		db = db.CreateTable(&common.AuctionBid{})
+		if db.Error != nil {
+			return nil, fmt.Errorf("failed to create table AuctionBids: %v", db.Error)
+		}
 	}
 
 	db = db.Model(&common.NFT{}).AddForeignKey(
@@ -495,4 +563,19 @@ func (m *MarketplaceHandler) getEventAttr(events []abciTypes.Event, eventType, a
 		}
 	}
 	return "", false
+}
+
+func (m *MarketplaceHandler) queryNFT(tokenID string) (*appTypes.NFTInfo, error) {
+	var (
+		tokenInfo *appTypes.NFTInfo
+		err       error
+		res       []byte
+	)
+	if res, _, err = m.cliCtx.QueryWithData(fmt.Sprintf("custom/marketplace/nft/%s", tokenID), nil); err != nil {
+		return tokenInfo, err
+	}
+	if err = m.cliCtx.Codec.UnmarshalJSON(res, &tokenInfo); err != nil {
+		return tokenInfo, err
+	}
+	return tokenInfo, nil
 }
