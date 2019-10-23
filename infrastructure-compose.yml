@@ -42,8 +42,8 @@ services:
       - dwh-tier
   #    network_mode: host
 
-  gql:
-    container_name: dwh_gql
+  graphql:
+    container_name: dwh_graphql
     image: hasura/graphql-engine:latest
     restart: unless-stopped
     ports:
@@ -61,6 +61,8 @@ services:
     container_name: dwh_marketplace
     image: "dwh_marketplace:latest"
     restart: unless-stopped
+    ports:
+      - 26657:26657
     networks:
       - dwh-tier
 #    network_mode: host

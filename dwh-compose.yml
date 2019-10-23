@@ -3,8 +3,6 @@ version: '3'
 services:
   indexer:
     image: "dwh_indexer:latest"
-    volumes:
-      - ./volumes/indexer.state:/root/indexer.state
     restart: unless-stopped
     networks:
       - dwh-tier
@@ -14,8 +12,6 @@ services:
     image: "dwh_img_storage:latest"
     ports:
       - "11535:11535"
-    volumes:
-      - ./volumes/img_storage:/root/dwh_storage
     expose:
       - 11535
     restart: unless-stopped

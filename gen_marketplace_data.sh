@@ -114,3 +114,15 @@ mpcli tx marketplace offer TOKEN_7 100token ${buyerBeneficiary} --sequence $user
 echo "Accept the offer for TOKEN_7"
 mpcli tx marketplace accept_offer TOKEN_7 1 ${sellerBeneficiary} --sequence $user1Sequence --from user1 -y <<< '12345678'
 ((user1Sequence=user1Sequence+1))
+sleep 5
+
+
+# >>>
+echo "Offer a price again for TOKEN_3"
+mpcli tx marketplace offer TOKEN_3 200token ${buyerBeneficiary} --from user1 -y <<< '12345678'
+sleep 5
+
+
+echo "Put TOKEN_4 on auction"
+mpcli tx marketplace put_on_auction TOKEN_4 22token ${sellerBeneficiary} 1000m --buyout 100token --from user2 -y <<< '12345678'
+sleep 5
