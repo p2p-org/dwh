@@ -1,4 +1,4 @@
-package common
+package dwh_common
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

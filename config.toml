@@ -1,6 +1,9 @@
 [indexer]
 	state_path = "./indexer.state"
 	reset_database = false
+	marketplace_addr = "tcp://marketplace:26657"
+	cli_home = ".mpcli"
+	chain_id = "mpchain"
 
 [rabbitmq]
 	queue_scheme = "amqp"
@@ -49,3 +52,10 @@
 	mongo_host = "mongodb:27017"
 	mongo_database = "dgaming"
 	mongo_collection = "token_metadata"
+
+[postgres_db]
+	postgres_user_name = "dgaming"
+	postgres_user_pass = "dgaming"
+	postgres_host = "postgres"
+	postgres_port = 5432
+	postgres_db_name = "marketplace"
