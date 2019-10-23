@@ -19,7 +19,8 @@ func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 		return
 	}
 
-	db, err := common.GetDB()
+	cfg := common.DefaultDwhCommonServiceConfig()
+	db, err := common.GetDB(cfg)
 	if err != nil {
 		t.Errorf("failed to establish database connection: %v", err)
 		return
