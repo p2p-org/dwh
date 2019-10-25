@@ -7,6 +7,8 @@ require (
 	github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190829124036-5189e32ac7d3
 	github.com/dgamingfoundation/marketplace v0.0.0-20191015133231-1b11b20c9d8f
 	github.com/gorilla/mux v1.7.0
+	github.com/h2non/filetype v1.0.10
+	github.com/h2non/go-is-svg v0.0.0-20160927212452-35e8c4b0612c
 	github.com/jinzhu/gorm v1.9.10
 	github.com/lib/pq v1.1.1
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -26,5 +28,6 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0
 	go.mongodb.org/mongo-driver v1.1.1
+	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 )

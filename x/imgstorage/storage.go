@@ -102,7 +102,16 @@ func (ims *ImgStorage) loadImg(owner, imgType string, width, height int) (string
 	}
 
 	if len(names) == 0 {
-		return "", fmt.Errorf("no files found")
+		name = fmt.Sprintf(FileNameFormat, owner, imgType, 0, 0)
+		filePrefix = fmt.Sprintf("%x+", md5.Sum([]byte(name)))
+		names, err = filepath.Glob(path.Join(dirPath, filePrefix) + "*")
+		if err != nil {
+			return "", fmt.Errorf("glob error: %v", err)
+		}
+
+		if len(names) == 0 {
+			return "", fmt.Errorf("no files found")
+		}
 	}
 
 	fullFileName := names[0]
