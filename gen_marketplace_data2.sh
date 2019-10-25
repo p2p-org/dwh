@@ -11,70 +11,68 @@ echo "User 2: $user2"
 echo "====================================================================="
 
 # Generate 5 tokens.
-#for i in 8 9 10
-#do
-#	echo "Minting token $i..."
-#	mpcli tx nft mint ${denom} "TOKEN_$i" ${user1} --from user1 -y <<< '12345678'
-#	sleep 5
-#done
+for i in 8 9 10
+do
+	echo "Minting token $i..."
+	mpcli tx nft mint ${denom} "TOKEN_$i" ${user1} --from user1 -y <<< '12345678'
+	sleep 5
+done
 
 
-#for i in 8 9
-#do
-#	echo "Remove TOKEN_$i from market"
-#    mpcli tx marketplace remove_from_market "TOKEN_$i" --from user1 -y <<< '12345678'
-#	sleep 5
-#done
+for i in 8 9
+do
+	echo "Remove TOKEN_$i from market"
+    mpcli tx marketplace remove_from_market "TOKEN_$i" --from user1 -y <<< '12345678'
+	sleep 5
+done
 
-#for i in 11 12 13
-#do
-#	echo "Minting token $i..."
-#	mpcli tx nft mint ${denom} "TOKEN_$i" ${user1} --from user1 -y <<< '12345678'
-#	sleep 5
-#done
-#
-#for i in 11 12 13
-#do
-#	echo "Put TOKEN_$i on auction"
-#    mpcli tx marketplace put_on_auction "TOKEN_$i" 100000000000000000000000token ${sellerBeneficiary} 9999m --from user1 -y <<< '12345678'
-#	sleep 5
-#done
-#
-#for i in 11 12
-#do
-#    echo "Remove TOKEN_$i from auction"
-#    mpcli tx marketplace remove_from_auction "TOKEN_$i" --from user1 -y <<< '12345678'
-#	sleep 5
-#done
-#
-## >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-#
-#echo "Offer a price again for TOKEN_8"
-#mpcli tx marketplace offer TOKEN_8 678token ${buyerBeneficiary} --from user2 -y <<< '12345678'
-#sleep 5
-#
-#echo "Offer a price again for TOKEN_8"
-#mpcli tx marketplace offer TOKEN_8 789token ${buyerBeneficiary} --from user2 -y <<< '12345678'
-#sleep 5
-#
-#echo "Offer a price again for TOKEN_12"
-#mpcli tx marketplace offer TOKEN_12 1567000token ${buyerBeneficiary} --from user2 -y <<< '12345678'
-#sleep 5
-#
-#echo "Offer a price again for TOKEN_12"
-#mpcli tx marketplace offer TOKEN_12 1867000token ${buyerBeneficiary} --from user2 -y <<< '12345678'
-#sleep 5
-#
+for i in 11 12 13
+do
+	echo "Minting token $i..."
+	mpcli tx nft mint ${denom} "TOKEN_$i" ${user1} --from user1 -y <<< '12345678'
+	sleep 5
+done
 
-#echo "Put TOKEN_12 on auction"
-#mpcli tx marketplace put_on_auction TOKEN_12 1323token ${sellerBeneficiary} 100m --buyout 196token --from user1 -y <<< '12345678'
-#sleep 5
+for i in 11 12 13
+do
+	echo "Put TOKEN_$i on auction"
+    mpcli tx marketplace put_on_auction "TOKEN_$i" 100000000000000000000000token ${sellerBeneficiary} 9999m --from user1 -y <<< '12345678'
+	sleep 5
+done
 
-#echo "Put TOKEN_13 on auction"
-#mpcli tx marketplace put_on_auction TOKEN_10 41token ${sellerBeneficiary} 100m --buyout 23token --from user1 -y <<< '12345678'
-#sleep 5
+for i in 11 12
+do
+    echo "Remove TOKEN_$i from auction"
+    mpcli tx marketplace remove_from_auction "TOKEN_$i" --from user1 -y <<< '12345678'
+	sleep 5
+done
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+echo "Offer a price again for TOKEN_8"
+mpcli tx marketplace offer TOKEN_14 678token ${buyerBeneficiary} --from user2 -y <<< '12345678'
+sleep 5
+
+echo "Offer a price again for TOKEN_8"
+mpcli tx marketplace offer TOKEN_14 789token ${buyerBeneficiary} --from user2 -y <<< '12345678'
+sleep 5
+
+echo "Offer a price again for TOKEN_12"
+mpcli tx marketplace offer TOKEN_15 1567000token ${buyerBeneficiary} --from user2 -y <<< '12345678'
+sleep 5
+
+echo "Offer a price again for TOKEN_12"
+mpcli tx marketplace offer TOKEN_15 1867000token ${buyerBeneficiary} --from user2 -y <<< '12345678'
+sleep 5
 
 
+echo "Put TOKEN_12 on auction"
+mpcli tx marketplace put_on_auction TOKEN_14 13token ${sellerBeneficiary} 100m --buyout 196token --from user1 -y <<< '12345678'
+sleep 5
+
+echo "Put TOKEN_13 on auction"
+mpcli tx marketplace put_on_auction TOKEN_15 41token ${sellerBeneficiary} 100m --buyout 230token --from user1 -y <<< '12345678'
+sleep 5
 
 for i in 14 15 16
 do

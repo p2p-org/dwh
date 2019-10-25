@@ -41,7 +41,8 @@ while test $# -gt 0; do
     up)
       docker-compose -f infrastructure-compose.yml up -d
       sleep 24
-      docker-compose -f dwh-compose.yml up -d --scale token_meta_data=2 --scale img_worker=2
+      #docker-compose -f dwh-compose.yml up -d --scale token_meta_data=2 --scale img_worker=2
+      docker-compose -f dwh-compose.yml up -d
       exit 0
       ;;
     down)
