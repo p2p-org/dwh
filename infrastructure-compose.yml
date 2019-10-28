@@ -39,19 +39,19 @@ services:
     networks:
       - dwh-tier
 
-  graphql:
-    container_name: dwh_graphql
-    image: hasura/graphql-engine:latest
-    restart: unless-stopped
-    ports:
-      - 8080:8080
-    depends_on:
-      - "postgres"
-    environment:
-      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
-      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
-    networks:
-      - dwh-tier
+#  graphql:
+#    container_name: dwh_graphql
+#    image: hasura/graphql-engine:latest
+#    restart: unless-stopped
+#    ports:
+#      - 8080:8080
+#    depends_on:
+#      - "postgres"
+#    environment:
+#      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
+#      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+#    networks:
+#      - dwh-tier
 
   marketplace:
     container_name: dwh_marketplace
@@ -80,4 +80,5 @@ services:
 
 networks:
   dwh-tier:
-    driver: bridge
+    external:
+      name: dwh-network
