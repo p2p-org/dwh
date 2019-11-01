@@ -1,0 +1,80 @@
+# Required secret repo vars:
+#   * DOCKER_GIT_CREDENTIALS - file with list of credentials - one per line. Used to clone private repos
+#   * DOCKER_AUTH_CONFIG - docker config used for pushing to repos
+
+image: golang:1.12-alpine3.10
+
+services:
+- docker:dind
+
+stages:
+- verify
+- build
+- publish
+
+variables:
+  DOCKERHUB_URL: gitlab.fevlake.com:4567
+  IMAGE_NAME: dgaming/dwh
+
+before_script:
+# Docker creds
+- mkdir -p $HOME/.docker
+- echo "${DOCKER_AUTH_CONFIG}" > $HOME/.docker/config.json
+- chmod 600 $HOME/.docker/config.json
+# GitHub private repos access (http://smartystreets.com/blog/2018/09/private-dependencies-in-docker-and-go - option 4)
+- apk add git
+- git config --global credential.helper store
+- echo "${DOCKER_GIT_CREDENTIALS}" > $HOME/.git-credentials
+
+
+# verify
+Ensure dependencies have not been modified:
+  stage: verify
+  allow_failure: false
+  script:
+    - GO111MODULE=on go mod verify
+    - GO111MODULE=on go mod vendor
+    - GO111MODULE=off
+    - chmod 0777 ./go.sum
+    - chmod -R 0777 ./vendor
+  artifacts:
+    when: on_success
+    expire_in: 1 day
+    paths:
+      - go.sum
+      - vendor
+
+# build
+Build DWH:
+  stage: build
+  dependencies:
+    - Ensure dependencies have not been modified
+  script:
+    # basically taken from dockerfile, but Dockerfile does not support mounting of private data
+    - apk add bash ca-certificates libc-dev
+    - export GO111MODULE=on
+    - export PATH=/go/bin:$PATH
+    - export GOPATH=/go
+    - export PROJ_PATH=/go/src/github.com/dgamingfoundation/dwh/
+    # Main part - if new services will be created, add here
+    - (for APPNAME in $(ls -1 cmd) ; do
+        echo Building $APPNAME...;
+        time go build -mod vendor ${BUILD_FLAGS} -o dist/$APPNAME ./cmd/$APPNAME;
+      done)
+  artifacts:
+    when: on_success
+    expire_in: 1 day
+    paths:
+      - dist
+
+# publish
+Publish DWH image:
+  stage: publish
+  image: docker:latest
+  dependencies:
+    - Build DWH
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY || true
+    - docker build -t ${DOCKERHUB_URL}/${IMAGE_NAME}:latest -t ${DOCKERHUB_URL}/${IMAGE_NAME}:${CI_PIPELINE_ID} -f .infra/Dockerfile .
+    - docker push ${DOCKERHUB_URL}/${IMAGE_NAME}:latest
+    - docker push ${DOCKERHUB_URL}/${IMAGE_NAME}:${CI_PIPELINE_ID}
