@@ -3,8 +3,8 @@ version: '3'
 services:
   indexer:
     image: "dwh_indexer:latest"
-#    volumes:
-#      - ./volumes/indexer.state:/root/indexer.state
+    volumes:
+      - idx-data:/root
     restart: unless-stopped
     networks:
       - dwh-tier
@@ -52,6 +52,9 @@ services:
       - HASURA_GRAPHQL_ENABLE_CONSOLE=true
     networks:
       - dwh-tier
+
+volumes:
+  idx-data:
 
 networks:
   dwh-tier:
