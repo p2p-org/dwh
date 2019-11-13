@@ -4,6 +4,8 @@ services:
     image: postgres:11-alpine
     container_name: dwh_postgress
     restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:
@@ -57,13 +59,13 @@ services:
     container_name: dwh_marketplace
     image: "dwh_marketplace:latest"
     restart: unless-stopped
+    volumes:
+      - mp-data:/root
     ports:
       - 26657:26657
       - 1317:1317
     networks:
       - dwh-tier
-    environment:
-      - MPD_INIT=true
 
 
 #  marketplace_api:
@@ -77,6 +79,10 @@ services:
 #    networks:
 #      - dwh-tier
 ##    network_mode: host
+
+volumes:
+  db-data:
+  mp-data:
 
 networks:
   dwh-tier:
