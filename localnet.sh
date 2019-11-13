@@ -100,6 +100,8 @@ while test $# -gt 0; do
       exit 0
       ;;
     rebuild-mp)
+      $cur_path/$0 stop
+      docker rm dwh_marketplace
       $cur_path/../marketplace/buildDocker.sh
       exit 0
       ;;
@@ -112,12 +114,6 @@ while test $# -gt 0; do
     seed)
       docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
       docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data.sh
-
-      exit 0
-      ;;
-    seed2)
-      docker cp gen_marketplace_data2.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
-      docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data2.sh
 
       exit 0
       ;;
