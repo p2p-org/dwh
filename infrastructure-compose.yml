@@ -60,6 +60,7 @@ services:
     image: "dwh_marketplace:latest"
     restart: unless-stopped
     volumes:
+      - ./data:/data
       - mp-data:/root
     ports:
       - 26657:26657
@@ -68,6 +69,8 @@ services:
       - dwh-tier
     environment:
       - DEMO=true
+#      - ACC_OUT_FILE=/data/out.txt
+      - ACC_IN_FILE=/data/mnemonic.txt
 
 #  marketplace_api:
 #    container_name: dwh_marketplace_api
