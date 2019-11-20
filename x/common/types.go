@@ -1,12 +1,14 @@
 package dwh_common
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/dialects/postgres"
 	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -135,7 +137,7 @@ type Tx struct {
 	Index     uint32 `gorm:"not null"`
 	Code      uint32 `gorm:"not null"`
 	Data      []byte
-	Log       string
+	Log       postgres.Jsonb
 	Info      string
 	GasWanted int64
 	GasUsed   int64
@@ -149,7 +151,7 @@ func NewTx(tx *coreTypes.ResultTx) *Tx {
 		Index:     tx.Index,
 		Code:      tx.TxResult.Code,
 		Data:      tx.TxResult.Data,
-		Log:       tx.TxResult.Log,
+		Log:       postgres.Jsonb{json.RawMessage(tx.TxResult.Log)},
 		Info:      tx.TxResult.Info,
 		GasWanted: tx.TxResult.GasWanted,
 		GasUsed:   tx.TxResult.GasUsed,
@@ -160,7 +162,7 @@ type Message struct {
 	gorm.Model
 	Route     string
 	MsgType   string
-	Signature string
+	Signature postgres.Jsonb
 	Signers   string
 	Failed    bool
 	Error     string
@@ -184,7 +186,7 @@ func NewMessage(
 	return &Message{
 		Route:     route,
 		MsgType:   msgType,
-		Signature: sign,
+		Signature: postgres.Jsonb{json.RawMessage(sign)},
 		Signers:   strings.Join(strSigners, ", "),
 		Failed:    failed,
 		Error:     error,
