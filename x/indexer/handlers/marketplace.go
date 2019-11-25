@@ -173,6 +173,9 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveNFTFromMarket)
 	case mptypes.MsgBuyNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBuyNFT)
+		if _, err := m.findOrCreateUser(db, value.Buyer); err != nil {
+			return err
+		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.TokenID).UpdateColumns(map[string]interface{}{
 			"Status":       mptypes.NFTStatusDefault,
 			"OwnerAddress": value.Buyer.String(),
