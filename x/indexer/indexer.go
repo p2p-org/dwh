@@ -215,7 +215,8 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		}
 
 		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
-			log.Debugf("transaction %s failed (code %d), skipping. Log: %s", txBytes.String(), txRes.TxResult.Code, txRes.TxResult.Log)
+			log.Debugf("transaction %s failed (code %d). Log: %s. Msgs in tx: %v", txBytes.String(),
+				txRes.TxResult.Code, txRes.TxResult.Log, len(dbTx.Messages))
 			continue
 		}
 		if txRes.Index < m.cursor.TxIndex {
@@ -232,7 +233,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 
 		for msgID, msg := range tx.GetMsgs() {
 			if err := m.processMsg(dbTx.ID, dbTx.Index, msgID, msg, txRes.TxResult.GetEvents()...); err != nil {
-				log.Errorf("failed to process message: %v", err)
+				log.Errorf("failed to process message, msg: %v, error: %v", err)
 				if err == errCursor {
 					// This is a fatal error, indexer should be stopped.
 					return err
