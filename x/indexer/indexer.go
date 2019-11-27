@@ -217,6 +217,12 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
 			log.Debugf("transaction %s failed (code %d). Log: %s. Msgs in tx: %v", txBytes.String(),
 				txRes.TxResult.Code, txRes.TxResult.Log, len(dbTx.Messages))
+			for i, msg := range dbTx.Messages {
+				i, msg := i, msg
+				log.Debugf("message %d in failed tx, msgID: %v, msgType: %v, msgError: %v",
+					i, msg.ID, msg.MsgType, msg.Error)
+			}
+
 			continue
 		}
 		if txRes.Index < m.cursor.TxIndex {
