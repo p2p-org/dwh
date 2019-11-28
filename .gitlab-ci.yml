@@ -2,7 +2,7 @@
 #   * DOCKER_GIT_CREDENTIALS - file with list of credentials - one per line. Used to clone private repos
 #   * DOCKER_AUTH_CONFIG - docker config used for pushing to repos
 
-image: golang:1.12-alpine3.10
+image: golang:1.13-alpine3.10
 
 services:
 - docker:dind
