@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/cosmos-sdk/x/nft"
+	"github.com/cosmos/modules/incubator/nft"
 	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
 	common "github.com/dgamingfoundation/dwh/x/common"
 	app "github.com/dgamingfoundation/marketplace"
@@ -115,6 +115,13 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
+	case nft.MsgBurnNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBurnNFT)
+		db.Where("token_id = ?", value.ID).Delete(&common.NFT{})
+		if db.Error != nil {
+			return fmt.Errorf("failed to delete token (MsgBurnNFT): %v", db.Error)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgBurnNFT)
 	case nft.MsgEditNFTMetadata:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgEditNFTMetadata)
 		if _, err := m.findOrCreateUser(db, value.Sender); err != nil {
