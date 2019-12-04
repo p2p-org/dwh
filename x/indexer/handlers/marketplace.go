@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	stdLog "log"
+	"reflect"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -99,12 +100,20 @@ func (m *MarketplaceHandler) increaseCounter(labels ...string) {
 func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciTypes.Event) error {
 	m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueCommon)
 	log.Infof("got message of type %s: %+v", msg.Type(), msg)
+
+	msgAddrs, err := m.getMsgAddresses(db, msg)
+	if err != nil {
+		return fmt.Errorf("failed to get message addresses")
+	}
+	for _, addr := range msgAddrs {
+		if _, err := m.findOrCreateUser(db, addr); err != nil {
+			return fmt.Errorf("failed to preemptively create users for message: %v", err)
+		}
+	}
+
 	switch value := msg.(type) {
 	case nft.MsgMintNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMintNFT)
-		if _, err := m.findOrCreateUser(db, value.Recipient); err != nil {
-			return err
-		}
 		db = db.Create(
 			common.NewNFTFromMarketplaceNFT(value.Denom, value.ID, value.Recipient.String(), value.TokenURI),
 		)
@@ -117,9 +126,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
 	case nft.MsgEditNFTMetadata:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgEditNFTMetadata)
-		if _, err := m.findOrCreateUser(db, value.Sender); err != nil {
-			return err
-		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.ID).UpdateColumn(map[string]interface{}{
 			"TokenURI": value.TokenURI,
 		})
@@ -132,9 +138,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgEditNFTMetadata)
 	case nft.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
-		if _, err := m.findOrCreateUser(db, value.Recipient); err != nil {
-			return err
-		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.ID).UpdateColumns(map[string]interface{}{
 			"OwnerAddress": value.Recipient.String(),
 		})
@@ -337,13 +340,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if offer.ID == 0 {
 			return fmt.Errorf("unknown offer ID (not found in related offers): %s", value.OfferID)
 		}
-		buyerAddress, err := sdk.AccAddressFromBech32(offer.Buyer)
-		if err != nil {
-			return fmt.Errorf("failed to get buyer address from Bech32: %v", err)
-		}
-		if _, err := m.findOrCreateUser(db, buyerAddress); err != nil {
-			return err
-		}
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.TokenID).UpdateColumns(map[string]interface{}{
 			"OwnerAddress": offer.Buyer,
 		})
@@ -382,9 +378,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgRemoveOffer)
 	case mptypes.MsgCreateFungibleToken:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgCreateFungibleToken)
-		if _, err := m.findOrCreateUser(db, value.Creator); err != nil {
-			return err
-		}
 		db = db.Create(&common.FungibleToken{
 			OwnerAddress:   value.Creator.String(),
 			Denom:          value.Denom,
@@ -578,4 +571,17 @@ func (m *MarketplaceHandler) queryNFT(tokenID string) (*appTypes.NFTInfo, error)
 		return tokenInfo, err
 	}
 	return tokenInfo, nil
+}
+
+func (m *MarketplaceHandler) getMsgAddresses(db *gorm.DB, msg sdk.Msg) ([]sdk.AccAddress, error) {
+	var out []sdk.AccAddress
+	accAddrType := reflect.ValueOf(sdk.AccAddress{}).Type()
+	reflectedValue := reflect.ValueOf(msg)
+	for i := 0; i < reflectedValue.NumField(); i++ {
+		if reflectedAddr := reflectedValue.Field(i); reflectedAddr.Type().AssignableTo(accAddrType) {
+			out = append(out, sdk.AccAddress(reflectedAddr.Bytes()))
+		}
+	}
+
+	return out, nil
 }
