@@ -3,8 +3,8 @@ package main
 import (
 	stdLog "log"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/tokenMetadataService"
+	dwh_common "github.com/corestario/dwh/x/common"
+	"github.com/corestario/dwh/x/tokenMetadataService"
 )
 
 func main() {
