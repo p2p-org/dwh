@@ -33,6 +33,14 @@ services:
     networks:
       - dwh-tier
 
+  auction_helper:
+    image: "auction_helper:latest"
+    restart: unless-stopped
+    depends_on:
+      - "indexer"
+    networks:
+      - dwh-tier
+
   mongo_daemon:
     image: "dwh_mongo_daemon:latest"
     restart: unless-stopped

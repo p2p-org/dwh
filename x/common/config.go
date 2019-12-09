@@ -96,6 +96,15 @@ type PostgresCfg struct {
 	PostgresDBName   string `mapstructure:"postgres_db_name"`
 }
 
+type AuctionHelperCfg struct {
+	AuctionHelperName                   string `mapstructure:"marketplace_name"`
+	AuctionHelperPassword               string `mapstructure:"marketplace_pass"`
+	AuctionHelperMarketplaceHost        string `mapstructure:"marketplace_host"`
+	AuctionHelperMarketplacePort        int    `mapstructure:"marketplace_port"`
+	AuctionHelperDWHUpdateTickerSeconds int    `mapstructure:"dwh_update_ticker_sec"`
+	AuctionHelperFinishTickerSeconds    int    `mapstructure:"mp_finish_ticker_sec"`
+}
+
 type DwhCommonServiceConfig struct {
 	IndexerCfg              `mapstructure:"indexer"`
 	RabbitMQCfg             `mapstructure:"rabbitmq"`
@@ -105,6 +114,7 @@ type DwhCommonServiceConfig struct {
 	MongoDaemonServiceCfg   `mapstructure:"mongo_daemon_service"`
 	MongoDBCfg              `mapstructure:"mongo_db"`
 	PostgresCfg             `mapstructure:"postgres_db"`
+	AuctionHelperCfg        `mapstructure:"auction_helper"`
 }
 
 func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
@@ -173,6 +183,15 @@ func DefaultDwhCommonServiceConfig() *DwhCommonServiceConfig {
 			PostgresHost:     "localhost",
 			PostgresPort:     5432,
 			PostgresDBName:   "marketplace",
+		},
+
+		AuctionHelperCfg: AuctionHelperCfg{
+			AuctionHelperName:                   "dgaming",
+			AuctionHelperPassword:               "12345678",
+			AuctionHelperMarketplaceHost:        "localhost",
+			AuctionHelperMarketplacePort:        1317,
+			AuctionHelperDWHUpdateTickerSeconds: 60,
+			AuctionHelperFinishTickerSeconds:    5,
 		},
 	}
 }

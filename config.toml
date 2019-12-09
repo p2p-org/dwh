@@ -59,3 +59,11 @@
 	postgres_host = "postgres"
 	postgres_port = 5432
 	postgres_db_name = "marketplace"
+
+[auction_helper]
+	marketplace_name = "dgaming"
+	marketplace_pass = "12345678"
+	marketplace_host = "http://marketplace"
+	marketplace_port = 1317
+	dwh_update_ticker_sec = 60
+	mp_finish_ticker_sec = 5

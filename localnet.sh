@@ -10,6 +10,7 @@ docker_metadata_worker_name=dwh_tmd_worker
 docker_img_storage_name=dwh_img_storage
 docker_mongo_daemon_name=dwh_mongo_daemon
 docker_indexer_name=dwh_indexer
+docker_auction_helper_name=auction_helper
 
 if [ $# -ne 1 ]; then
     echo "Illegal number of parameters: $#"
@@ -95,6 +96,7 @@ while test $# -gt 0; do
       docker build -t $docker_metadata_worker_name --build-arg APPNAME=tokenMetadataWorker .
       docker build -t $docker_img_worker_name --build-arg	APPNAME=imgworker .
       docker build -t $docker_mongo_daemon_name --build-arg APPNAME=mongoDaemon .
+      docker build -t $docker_auction_helper_name --build-arg APPNAME=auctionHelper .
 
       rm -rf $cur_path/vendor
       exit 0

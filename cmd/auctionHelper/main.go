@@ -36,10 +36,7 @@ func main() {
 		}
 	}()
 
-	hlpr, err := auctionHelper.NewAuctionHelper(ctx, hlprCfg, db)
-	if err != nil {
-		log.Fatal("failed to create auction helper: %v", err)
-	}
+	hlpr := auctionHelper.NewAuctionHelper(ctx, hlprCfg, db)
 
 	hlpr.Run()
 }
