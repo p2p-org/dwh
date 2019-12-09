@@ -9,9 +9,9 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	cliCtx "github.com/dgamingfoundation/cosmos-utils/client/context"
-	common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
+	cliCtx "github.com/corestario/cosmos-utils/client/context"
+	common "github.com/corestario/dwh/x/common"
+	"github.com/corestario/dwh/x/indexer/handlers"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/imgstorage"
+	dwh_common "github.com/corestario/dwh/x/common"
+	"github.com/corestario/dwh/x/imgstorage"
 	"github.com/gorilla/mux"
 )
 

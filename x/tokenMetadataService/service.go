@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	dwh_common "github.com/corestario/dwh/x/common"
 	"github.com/xeipuuv/gojsonschema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

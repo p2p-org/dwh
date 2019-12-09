@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"time"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	dwh_common "github.com/corestario/dwh/x/common"
 	"github.com/h2non/filetype"
 	svg "github.com/h2non/go-is-svg"
 	"github.com/nfnt/resize"

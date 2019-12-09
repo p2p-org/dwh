@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	dwh_common "github.com/corestario/dwh/x/common"
 
 	"github.com/streadway/amqp"
 )

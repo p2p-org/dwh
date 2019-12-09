@@ -5,9 +5,9 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/indexer"
-	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
+	common "github.com/corestario/dwh/x/common"
+	"github.com/corestario/dwh/x/indexer"
+	"github.com/corestario/dwh/x/indexer/handlers"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
