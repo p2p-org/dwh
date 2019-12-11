@@ -195,6 +195,9 @@ do
 done
 
 echo "Creating coins..."
-mpcli tx marketplace createFT terra 298765 --from user1 -y <<< $PSW
-mpcli tx marketplace createFT bitcoin 194999 --from user2 -y <<< $PSW
-mpcli tx marketplace createFT tugrik 9999  --from user1 -y <<< $PSW
+mpcli tx marketplace createFT terra 298765 --from user1 --sequence $user1Sequence -y <<< $PSW
+((user1Sequence=user1Sequence+1))
+mpcli tx marketplace createFT bitcoin 194999 --from user2 --sequence $user2Sequence -y <<< $PSW
+((user2Sequence=user2Sequence+1))
+mpcli tx marketplace createFT tugrik 9999  --from user1 --sequence $user1Sequence -y <<< $PSW
+((user1Sequence=user1Sequence+1))
