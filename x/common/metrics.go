@@ -15,6 +15,7 @@ const (
 	PrometheusValueAccepted                  = "Accepted"
 	PrometheusValueCommon                    = "Common"
 	PrometheusValueMsgMintNFT                = "MsgMintNFT"
+	PrometheusValueMsgBurnNFT                = "MsgBurnNFT"
 	PrometheusValueMsgEditNFTMetadata        = "MsgEditNFTMetadata"
 	PrometheusValueMsgPutNFTOnMarket         = "MsgPutNFTOnMarket"
 	PrometheusValueMsgRemoveNFTFromMarket    = "MsgRemoveNFTFromMarket"
