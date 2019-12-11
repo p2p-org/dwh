@@ -346,7 +346,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if db.Error != nil {
 			return fmt.Errorf("failed to update token (MsgAcceptOffer): %v", db.Error)
 		}
-		db.Where("token_id = ?", value.TokenID).Delete(&common.Offer{})
+		db.Where("token_id = ? AND offer_id = ?", value.TokenID, value.OfferID).Delete(&common.Offer{})
 		if db.Error != nil {
 			return fmt.Errorf("failed to delete offers (MsgAcceptOffer): %v", db.Error)
 		}
