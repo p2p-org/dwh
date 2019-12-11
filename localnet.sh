@@ -118,12 +118,12 @@ while test $# -gt 0; do
       exit 0
       ;;
     logs-i)
-      docker-compose -f dwh-compose.yml logs -f indexer
+      docker-compose -f dwh-compose.yml logs -f --tail="500" indexer
 
       exit 0
       ;;
     logs-m)
-      docker-compose -f infrastructure-compose.yml logs --follow marketplace
+      docker-compose -f infrastructure-compose.yml logs -f --tail="500" marketplace
 
       exit 0
       ;;
@@ -132,6 +132,10 @@ while test $# -gt 0; do
       rm -fr $cur_path/vendor
       rm -fr $cur_path/volumes
 
+      exit 0
+      ;;
+    cli)
+      docker exec -it dwh_marketplace zsh
       exit 0
       ;;
     *)

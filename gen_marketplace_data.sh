@@ -193,3 +193,8 @@ do
     mpcli tx marketplace put_on_market "TOKEN_$i" $((i*13))token ${sellerBeneficiary} --sequence $user2Sequence --from user2 -y <<< $PSW
 	((user2Sequence=user2Sequence+1))
 done
+
+echo "Creating coins..."
+mpcli tx marketplace createFT terra 298765 --from user1 -y <<< $PSW
+mpcli tx marketplace createFT bitcoin 194999 --from user2 -y <<< $PSW
+mpcli tx marketplace createFT tugrik 9999  --from user1 -y <<< $PSW
