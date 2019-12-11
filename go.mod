@@ -3,8 +3,10 @@ module github.com/corestario/dwh
 go 1.12
 
 require (
-	github.com/corestario/marketplace v0.0.0-20191209223448-394256ccb3b0 // indirect
+	github.com/corestario/cosmos-utils/client v0.0.0-20191209221021-bc64f205ca9b
+	github.com/corestario/marketplace v0.0.0-20191209223448-394256ccb3b0
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20191013030331-92ea174ea6e6
+	github.com/cosmos/modules/incubator/nft v0.0.0-20191015123508-50d0c8092493
 	github.com/gorilla/mux v1.7.3
 	github.com/h2non/filetype v1.0.10
 	github.com/h2non/go-is-svg v0.0.0-20160927212452-35e8c4b0612c
