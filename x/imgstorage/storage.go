@@ -10,7 +10,7 @@ import (
 	"path"
 	"path/filepath"
 
-	dwh_common "github.com/dgamingfoundation/dwh/x/common"
+	dwh_common "github.com/corestario/dwh/x/common"
 )
 
 func (ims *ImgStorage) storeImg(req *dwh_common.ImageStoreRequest) error {

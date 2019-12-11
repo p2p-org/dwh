@@ -1,11 +1,10 @@
-module github.com/dgamingfoundation/dwh
+module github.com/corestario/dwh
 
 go 1.12
 
 require (
+	github.com/corestario/marketplace v0.0.0-20191209223448-394256ccb3b0 // indirect
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20191013030331-92ea174ea6e6
-	github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190829124036-5189e32ac7d3
-	github.com/dgamingfoundation/marketplace v0.0.0-20191128184356-d5909e3cdf83
 	github.com/gorilla/mux v1.7.3
 	github.com/h2non/filetype v1.0.10
 	github.com/h2non/go-is-svg v0.0.0-20160927212452-35e8c4b0612c
@@ -15,7 +14,6 @@ require (
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/common v0.4.1
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0

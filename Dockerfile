@@ -9,7 +9,7 @@ RUN apk add bash ca-certificates git libc-dev
 ENV GO111MODULE=off
 ENV PATH /go/bin:$PATH
 ENV GOPATH /go
-ENV DWHPATH /go/src/github.com/dgamingfoundation/dwh/
+ENV DWHPATH /go/src/github.com/corestario/dwh/
 RUN mkdir -p $DWHPATH
 
 COPY . $DWHPATH

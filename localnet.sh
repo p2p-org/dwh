@@ -112,18 +112,18 @@ while test $# -gt 0; do
       exit 0
       ;;
     seed)
-      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/dgamingfoundation/marketplace
-      docker exec -it dwh_marketplace bash /go/src/github.com/dgamingfoundation/marketplace/gen_marketplace_data.sh
+      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/corestario/marketplace
+      docker exec -it dwh_marketplace bash /go/src/github.com/corestario/marketplace/gen_marketplace_data.sh
 
       exit 0
       ;;
     logs-i)
-      docker-compose -f dwh-compose.yml logs -f indexer
+      docker-compose -f dwh-compose.yml logs -f --tail="500" indexer
 
       exit 0
       ;;
     logs-m)
-      docker-compose -f infrastructure-compose.yml logs --follow marketplace
+      docker-compose -f infrastructure-compose.yml logs -f --tail="500" marketplace
 
       exit 0
       ;;
@@ -132,6 +132,10 @@ while test $# -gt 0; do
       rm -fr $cur_path/vendor
       rm -fr $cur_path/volumes
 
+      exit 0
+      ;;
+    cli)
+      docker exec -it dwh_marketplace zsh
       exit 0
       ;;
     *)

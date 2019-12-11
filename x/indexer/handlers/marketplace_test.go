@@ -1,16 +1,41 @@
-package handlers_test
+package handlers
 
 import (
 	"os/user"
 	"path"
 	"testing"
 
-	cliContext "github.com/dgamingfoundation/cosmos-utils/client/context"
-	common "github.com/dgamingfoundation/dwh/x/common"
-	"github.com/dgamingfoundation/dwh/x/indexer/handlers"
-	app "github.com/dgamingfoundation/marketplace"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/nft"
+	cliContext "github.com/corestario/cosmos-utils/client/context"
+	common "github.com/corestario/dwh/x/common"
+	app "github.com/corestario/marketplace"
 	"github.com/stretchr/testify/require"
 )
+
+func TestEnsureUserExists(t *testing.T) {
+	cfg := common.DefaultDwhCommonServiceConfig()
+	db, err := common.GetDB(cfg)
+	if err != nil {
+		t.Errorf("failed to establish database connection: %v", err)
+		return
+	}
+	var (
+		sender, _    = sdk.AccAddressFromHex("cosmos1tctr64k4en25uvet2k2tfkwkh0geyrv8fvuvet")
+		recipient, _ = sdk.AccAddressFromHex("cosmos1tctr64k4en25uvet2k2tfkwkh0geyrv8fvuvet")
+	)
+
+	msgMintNFT := nft.MsgMintNFT{
+		Sender:    sender,
+		Recipient: recipient,
+	}
+	sdkMsg := sdk.Msg(msgMintNFT)
+	handler := &MarketplaceHandler{}
+	addresses, err := handler.getMsgAddresses(db, sdkMsg)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, len(addresses))
+}
 
 func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 	usr, err := user.Current()
@@ -42,7 +67,7 @@ func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 	}
 	cliCtx = cliCtx.WithCodec(cdc)
 
-	handler := handlers.NewMarketplaceHandler(cliCtx)
+	handler := NewMarketplaceHandler(cliCtx)
 	db, err = handler.Reset(db)
 	if err != nil {
 		t.Errorf("failed to Reset db: %v", err)
