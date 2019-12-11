@@ -20,5 +20,5 @@ func GetEnv(config *common.DwhCommonServiceConfig) (cliContext.Context, sdk.TxDe
 	}
 	cliCtx = cliCtx.WithCodec(cdc)
 
-	return cliCtx, auth.DefaultTxDecoder(cdc), nil
+	return *cliCtx, auth.DefaultTxDecoder(cdc), nil
 }
