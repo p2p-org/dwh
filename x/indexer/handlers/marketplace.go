@@ -8,15 +8,15 @@ import (
 	"reflect"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/modules/incubator/nft"
 	cliContext "github.com/corestario/cosmos-utils/client/context"
 	common "github.com/corestario/dwh/x/common"
 	app "github.com/corestario/marketplace"
 	appTypes "github.com/corestario/marketplace/x/marketplace/types"
 	mptypes "github.com/corestario/marketplace/x/marketplace/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/modules/incubator/nft"
 	"github.com/jinzhu/gorm"
 	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
@@ -407,9 +407,18 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		if recipient, err = m.findOrCreateUser(db, value.Recipient); err != nil {
 			return err
 		}
-		db.Where("denom = ?", value.Denom).First(&ft)
-		if ft.ID == 0 {
-			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+		row := db.Table("fungible_tokens").Where("denom = ?", value.Denom).Row()
+		if err := row.Scan(
+			&ft.ID,
+			&ft.CreatedAt,
+			&ft.UpdatedAt,
+			&ft.DeletedAt,
+			&ft.OwnerAddress,
+			&ft.Denom,
+			&ft.EmissionAmount,
+		); err != nil {
+			return fmt.Errorf("failed to transfer fungible token: %+v, FT id: %+v, failed to find FT denom error: %+v",
+				value.Denom, ft.ID, err)
 		}
 		db.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
 			SenderAddress:    sender.Address,
