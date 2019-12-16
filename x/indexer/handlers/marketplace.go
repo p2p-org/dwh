@@ -8,15 +8,15 @@ import (
 	"reflect"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/modules/incubator/nft"
 	cliContext "github.com/corestario/cosmos-utils/client/context"
 	common "github.com/corestario/dwh/x/common"
 	app "github.com/corestario/marketplace"
 	appTypes "github.com/corestario/marketplace/x/marketplace/types"
 	mptypes "github.com/corestario/marketplace/x/marketplace/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/modules/incubator/nft"
 	"github.com/jinzhu/gorm"
 	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
@@ -126,7 +126,11 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgMintNFT)
 	case nft.MsgBurnNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgBurnNFT)
-		db.Where("token_id = ?", value.ID).Delete(&common.NFT{})
+		t := time.Now().UTC()
+		db = db.Model(&common.NFT{}).Where("token_id = ?", value.ID).UpdateColumns(map[string]interface{}{
+			"Status":    mptypes.NFTStatusDeleted,
+			"DeletedAt": &t,
+		})
 		if db.Error != nil {
 			return fmt.Errorf("failed to delete token (MsgBurnNFT): %v", db.Error)
 		}
