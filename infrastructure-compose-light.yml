@@ -15,29 +15,13 @@ services:
     networks:
       - dwh-tier
 
-  mongodb:
-    image: mongo:latest
-    container_name: dwh_mongo
-    restart: unless-stopped
-#    ports:
-#      - 27017:27017
-    environment:
-      - MONGODB_USER=dgaming
-      - MONGODB_PASS=dgaming
-      - MONGODB_DATABASE=dgaming
-      - MONGO_INITDB_DATABASE=dgaming
-      - MONGO_INITDB_ROOT_USERNAME=dgaming
-      - MONGO_INITDB_ROOT_PASSWORD=dgaming
-    networks:
-      - dwh-tier
-
   rabbitmq:
     image: rabbitmq:latest
     container_name: dwh_rabbit
     restart: unless-stopped
-#    ports:
-#      - 5672:5672
-#      - 15672:15672
+    #    ports:
+    #      - 5672:5672
+    #      - 15672:15672
     networks:
       - dwh-tier
 
@@ -52,26 +36,6 @@ services:
     environment:
       - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
       - HASURA_GRAPHQL_ENABLE_CONSOLE=true
-    networks:
-      - dwh-tier
-
-  graphql-public:
-    container_name: dwh_graphql_public
-    image: hasura/graphql-engine:v1.0.0
-    restart: unless-stopped
-    expose:
-      - 8080
-    depends_on:
-      - "postgres"
-    environment:
-      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
-      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
-#      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup,http-log,webhook-log,websocket-log,query-log
-      ## uncomment next line to set an admin secret
-      - HASURA_GRAPHQL_ADMIN_SECRET=${GRAPHQL_ADMIN_SECRET}
-      - VIRTUAL_PORT=8080
-      - VIRTUAL_HOST=demo-gql.openmarket.one
-      - LETSENCRYPT_HOST=demo-gql.openmarket.one
     networks:
       - dwh-tier
 

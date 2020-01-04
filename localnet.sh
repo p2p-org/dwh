@@ -41,7 +41,7 @@ while test $# -gt 0; do
     up)
       docker network create dwh-network
       docker-compose -f infrastructure-compose.yml up -d
-      sleep 24
+      sleep 35
       #docker-compose -f dwh-compose.yml up -d --scale token_meta_data=2 --scale img_worker=2
       docker-compose -f dwh-compose.yml up -d
       exit 0
@@ -73,6 +73,20 @@ while test $# -gt 0; do
     restart)
       $cur_path/$0 stop
       $cur_path/$0 start
+      exit 0
+      ;;
+    up-light)
+      docker network create dwh-network
+      docker-compose -f infrastructure-compose-light.yml up -d
+      sleep 35
+      docker-compose -f dwh-compose-light.yml up -d
+      exit 0
+      ;;
+    down-light)
+      docker-compose -f dwh-compose-light.yml down -v
+      docker-compose -f infrastructure-compose-light.yml down -v
+      sleep 5
+      docker volume prune -f
       exit 0
       ;;
     rebuild)
