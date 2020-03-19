@@ -5,11 +5,11 @@ import (
 	"path"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/nft"
 	cliContext "github.com/corestario/cosmos-utils/client/context"
 	common "github.com/corestario/dwh/x/common"
 	app "github.com/corestario/marketplace"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/modules/incubator/nft"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,7 +67,7 @@ func TestMarketplaceHandlerResetAndSetup(t *testing.T) {
 	}
 	cliCtx = cliCtx.WithCodec(cdc)
 
-	handler := NewMarketplaceHandler(cliCtx)
+	handler := NewMarketplaceHandler(*cliCtx)
 	db, err = handler.Reset(db)
 	if err != nil {
 		t.Errorf("failed to Reset db: %v", err)
