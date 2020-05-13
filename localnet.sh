@@ -26,9 +26,12 @@ while test $# -gt 0; do
       echo "options:"
       echo "help                        show brief help"
       echo "up                          create & start all containers; images must be built"
+      echo "up-m                        create & start only marketplace containers; images must be built"
+      echo "down                        removes all containers"
       echo "down                        removes all containers"
       echo "reset                       removes containers, create and starts them without rebuild; equals down && up"
       echo "start                       start all stopped containers without recreation"
+      echo "start-m                     start stopped marketplace containers without recreation"
       echo "stop                        stop all running containers without data loss"
       echo "rebuild                     rebuild dwh images:
                             imgstorage, imgworker, indexer, mongoDaemon, tokenMetadataWorker"
@@ -44,6 +47,11 @@ while test $# -gt 0; do
       sleep 24
       #docker-compose -f dwh-compose.yml up -d --scale token_meta_data=2 --scale img_worker=2
       docker-compose -f dwh-compose.yml up -d
+      exit 0
+      ;;
+    up-m)
+      docker network create dwh-network
+      docker-compose -f infrastructure-compose.yml up -d
       exit 0
       ;;
     down)
@@ -64,6 +72,10 @@ while test $# -gt 0; do
 #      $cur_path/$0 up
       exit 0
       ;;
+    start-m)
+      docker-compose -f infrastructure-compose.yml start
+      exit 0
+      ;;
     stop)
       docker-compose -f dwh-compose.yml stop
       docker-compose -f infrastructure-compose.yml stop
@@ -76,12 +88,6 @@ while test $# -gt 0; do
       exit 0
       ;;
     rebuild)
-      rm -rf $cur_path/vendor
-
-      gopath=$(whereis go | grep -oP '(?<=go: )(\S*)(?= .*)' -m 1)
-      PATH=$gopath:$gopath/bin:$PATH
-
-      echo $GOBIN
       echo "--> Ensure dependencies have not been modified"
 
       GO111MODULE=on go mod verify
@@ -91,10 +97,10 @@ while test $# -gt 0; do
       chmod -R 0777 ./vendor
 
       docker build -t $docker_indexer_name --build-arg APPNAME=indexer .
-      docker build -t $docker_img_storage_name --build-arg APPNAME=imgstorage .
-      docker build -t $docker_metadata_worker_name --build-arg APPNAME=tokenMetadataWorker .
-      docker build -t $docker_img_worker_name --build-arg	APPNAME=imgworker .
-      docker build -t $docker_mongo_daemon_name --build-arg APPNAME=mongoDaemon .
+#      docker build -t $docker_img_storage_name --build-arg APPNAME=imgstorage .
+#      docker build -t $docker_metadata_worker_name --build-arg APPNAME=tokenMetadataWorker .
+#      docker build -t $docker_img_worker_name --build-arg	APPNAME=imgworker .
+#      docker build -t $docker_mongo_daemon_name --build-arg APPNAME=mongoDaemon .
 
       rm -rf $cur_path/vendor
       exit 0

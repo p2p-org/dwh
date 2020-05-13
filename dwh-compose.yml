@@ -9,35 +9,35 @@ services:
     networks:
       - dwh-tier
 
-  img_storage:
-    image: "dwh_img_storage:latest"
-#    ports:
-#      - "11535:11535"
-#    volumes:
-#      - ./volumes/img_storage:/root/dwh_storage
-    expose:
-      - 11535
-    restart: unless-stopped
-    networks:
-      - dwh-tier
+#  img_storage:
+#    image: "dwh_img_storage:latest"
+##    ports:
+##      - "11535:11535"
+##    volumes:
+##      - ./volumes/img_storage:/root/dwh_storage
+#    expose:
+#      - 11535
+#    restart: unless-stopped
+#    networks:
+#      - dwh-tier
 
-  token_meta_data:
-    image: "dwh_tmd_worker:latest"
-    restart: unless-stopped
-    networks:
-      - dwh-tier
-
-  img_worker:
-    image: "dwh_img_worker:latest"
-    restart: unless-stopped
-    networks:
-      - dwh-tier
-
-  mongo_daemon:
-    image: "dwh_mongo_daemon:latest"
-    restart: unless-stopped
-    networks:
-      - dwh-tier
+#  token_meta_data:
+#    image: "dwh_tmd_worker:latest"
+#    restart: unless-stopped
+#    networks:
+#      - dwh-tier
+#
+#  img_worker:
+#    image: "dwh_img_worker:latest"
+#    restart: unless-stopped
+#    networks:
+#      - dwh-tier
+#
+#  mongo_daemon:
+#    image: "dwh_mongo_daemon:latest"
+#    restart: unless-stopped
+#    networks:
+#      - dwh-tier
 
 volumes:
   idx-data:

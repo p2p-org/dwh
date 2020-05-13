@@ -1,23 +1,23 @@
-FROM golang:1.12-alpine3.10
+FROM golang:1.14-alpine
 
-ARG APPNAME
-ENV APP=$APPNAME
-RUN apk update
-RUN apk upgrade
-RUN apk add bash ca-certificates git libc-dev
+RUN apk add --update --no-cache bash ca-certificates git libc-dev make build-base
+
+#ENV PATH /go/bin:$PATH
+#ENV GOPATH /go
+ENV DWHPATH /go/src/github.com/corestario/dwh/
+#RUN mkdir -p $DWHPATH
+WORKDIR $DWHPATH
 
 ENV GO111MODULE=off
-ENV PATH /go/bin:$PATH
-ENV GOPATH /go
-ENV DWHPATH /go/src/github.com/corestario/dwh/
-RUN mkdir -p $DWHPATH
 
 COPY . $DWHPATH
 COPY ./config.toml /root/config.toml
 
+ARG APPNAME
+ENV APP=$APPNAME
 RUN go install $DWHPATH/cmd/$APP
 
-WORKDIR /root/
+
 
 EXPOSE 11535
 
