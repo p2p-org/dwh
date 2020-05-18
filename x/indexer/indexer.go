@@ -10,6 +10,7 @@ import (
 
 	cliCtx "github.com/corestario/cosmos-utils/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/jinzhu/gorm"
 	common "github.com/p2p-org/dwh/x/common"
 	"github.com/p2p-org/dwh/x/indexer/handlers"
@@ -187,8 +188,8 @@ func (m *Indexer) Start() error {
 				time.Sleep(time.Second)
 				continue
 			}
-			log.Infof("retrieved block #%d, block ID %s, transactions: %d",
-				m.cursor.Height, block.BlockMeta.BlockID, block.BlockMeta.Header.NumTxs)
+			log.Infof("retrieved block #%d, block ID %s",
+				m.cursor.Height, block.BlockID.String())
 
 			if err := m.processTxs(rpcClient, block.Block.Data.Txs); err != nil {
 				return fmt.Errorf("failed to processTxs: %v", err)
@@ -214,7 +215,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 			continue
 		}
 
-		if sdk.CodeType(txRes.TxResult.Code) == sdk.CodeUnknownRequest {
+		if txRes.TxResult.Code == sdkerrors.ErrUnknownRequest.ABCICode() {
 			log.Debugf("transaction %s failed (code %d). Log: %s. Msgs in tx: %v", txBytes.String(),
 				txRes.TxResult.Code, txRes.TxResult.Log, len(dbTx.Messages))
 			for i, msg := range dbTx.Messages {
