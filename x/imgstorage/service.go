@@ -1,7 +1,7 @@
 package imgstorage
 
 import (
-	dwh_common "github.com/corestario/dwh/x/common"
+	dwh_common "github.com/p2p-org/dwh/x/common"
 )
 
 const FileNameFormat = "%s_%s_%d_%d"

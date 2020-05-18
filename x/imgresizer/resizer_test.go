@@ -3,7 +3,7 @@ package imgresizer_test
 import (
 	"testing"
 
-	"github.com/corestario/dwh/x/imgresizer"
+	"github.com/p2p-org/dwh/x/imgresizer"
 	"github.com/stretchr/testify/assert"
 )
 

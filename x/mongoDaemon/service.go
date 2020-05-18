@@ -9,7 +9,7 @@ import (
 	stdLog "log"
 	"time"
 
-	dwh_common "github.com/corestario/dwh/x/common"
+	dwh_common "github.com/p2p-org/dwh/x/common"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	cliContext "github.com/corestario/cosmos-utils/client/context"
-	common "github.com/corestario/dwh/x/common"
-	app "github.com/corestario/marketplace"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/modules/incubator/nft"
+	common "github.com/p2p-org/dwh/x/common"
+	app "github.com/p2p-org/marketplace"
 	"github.com/stretchr/testify/require"
 )
 

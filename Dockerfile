@@ -4,7 +4,7 @@ RUN apk add --update --no-cache bash ca-certificates git libc-dev make build-bas
 
 #ENV PATH /go/bin:$PATH
 #ENV GOPATH /go
-ENV DWHPATH /go/src/github.com/corestario/dwh/
+ENV DWHPATH /go/src/github.com/p2p-org/dwh/
 #RUN mkdir -p $DWHPATH
 WORKDIR $DWHPATH
 

@@ -55,7 +55,7 @@ Build DWH:
     - export GO111MODULE=on
     - export PATH=/go/bin:$PATH
     - export GOPATH=/go
-    - export PROJ_PATH=/go/src/github.com/corestario/dwh/
+    - export PROJ_PATH=/go/src/github.com/p2p-org/dwh/
     # Main part - if new services will be created, add here
     - (for APPNAME in $(ls -1 cmd) ; do
         echo Building $APPNAME...;

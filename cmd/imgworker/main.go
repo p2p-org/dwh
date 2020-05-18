@@ -3,8 +3,8 @@ package main
 import (
 	stdLog "log"
 
-	dwh_common "github.com/corestario/dwh/x/common"
-	"github.com/corestario/dwh/x/imgresizer"
+	dwh_common "github.com/p2p-org/dwh/x/common"
+	"github.com/p2p-org/dwh/x/imgresizer"
 )
 
 func main() {

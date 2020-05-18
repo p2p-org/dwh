@@ -6,9 +6,9 @@ import (
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/corestario/marketplace/x/marketplace/types"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/p2p-org/marketplace/x/marketplace/types"
 	coreTypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 

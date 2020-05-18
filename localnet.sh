@@ -118,8 +118,8 @@ while test $# -gt 0; do
       exit 0
       ;;
     seed)
-      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/corestario/marketplace
-      docker exec -it dwh_marketplace bash /go/src/github.com/corestario/marketplace/gen_marketplace_data.sh
+      docker cp gen_marketplace_data.sh dwh_marketplace:/go/src/github.com/p2p-org/marketplace
+      docker exec -it dwh_marketplace bash /go/src/github.com/p2p-org/marketplace/gen_marketplace_data.sh
 
       exit 0
       ;;

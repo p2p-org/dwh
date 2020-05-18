@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	dwh_common "github.com/corestario/dwh/x/common"
-	"github.com/corestario/dwh/x/imgstorage"
 	"github.com/gorilla/mux"
+	dwh_common "github.com/p2p-org/dwh/x/common"
+	"github.com/p2p-org/dwh/x/imgstorage"
 )
 
 func main() {

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	common "github.com/corestario/dwh/x/common"
-	"github.com/corestario/dwh/x/indexer"
-	"github.com/corestario/dwh/x/indexer/handlers"
 	_ "github.com/lib/pq"
+	common "github.com/p2p-org/dwh/x/common"
+	"github.com/p2p-org/dwh/x/indexer"
+	"github.com/p2p-org/dwh/x/indexer/handlers"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"

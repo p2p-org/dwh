@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	dwh_common "github.com/corestario/dwh/x/common"
+	dwh_common "github.com/p2p-org/dwh/x/common"
 )
 
 func (ims *ImgStorage) StoreHandler(w http.ResponseWriter, r *http.Request) {

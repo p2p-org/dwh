@@ -16,10 +16,10 @@ import (
 	"net/http"
 	"time"
 
-	dwh_common "github.com/corestario/dwh/x/common"
 	"github.com/h2non/filetype"
 	svg "github.com/h2non/go-is-svg"
 	"github.com/nfnt/resize"
+	dwh_common "github.com/p2p-org/dwh/x/common"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
 	"golang.org/x/image/webp"

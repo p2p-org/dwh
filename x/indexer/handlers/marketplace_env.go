@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	cliContext "github.com/corestario/cosmos-utils/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	cliContext "github.com/corestario/cosmos-utils/client/context"
-	common "github.com/corestario/dwh/x/common"
-	app "github.com/corestario/marketplace"
+	common "github.com/p2p-org/dwh/x/common"
+	app "github.com/p2p-org/marketplace"
 )
 
 func GetEnv(config *common.DwhCommonServiceConfig) (cliContext.Context, sdk.TxDecoder, error) {
