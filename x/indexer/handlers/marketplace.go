@@ -10,6 +10,7 @@ import (
 
 	cliContext "github.com/corestario/cosmos-utils/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/modules/incubator/nft"
@@ -68,7 +69,7 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 		user = common.NewUser(
 			"",
 			acc.GetAddress(),
-			acc.GetCoins(),
+			sdk.Coins{},
 			acc.GetAccountNumber(),
 			acc.GetSequence(),
 			nil,
@@ -539,7 +540,7 @@ func (m *MarketplaceHandler) Reset(db *gorm.DB) (*gorm.DB, error) {
 }
 
 func (m *MarketplaceHandler) getAccount(addr sdk.AccAddress) (exported.Account, error) {
-	accGetter := authtypes.NewAccountRetriever(m.cliCtx)
+	accGetter := authtypes.NewAccountRetriever(authclient.Codec, &m.cliCtx)
 	if err := accGetter.EnsureExists(addr); err != nil {
 		return nil, err
 	}
