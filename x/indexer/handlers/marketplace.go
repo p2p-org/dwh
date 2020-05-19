@@ -24,6 +24,14 @@ import (
 	abciTypes "github.com/tendermint/tendermint/abci/types"
 )
 
+var (
+	appCodec, cdc = app.MakeCodecs()
+)
+
+func init() {
+	authclient.Codec = appCodec
+}
+
 type MarketplaceHandler struct {
 	cdc        *amino.Codec
 	cliCtx     cliContext.Context
