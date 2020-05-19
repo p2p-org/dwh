@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  indexer:
+    image: "dwh_indexer:latest"
+    volumes:
+      - idx-data:/root
+    restart: unless-stopped
+    networks:
+      - dwh-tier
+      -
+volumes:
+  idx-data:
+
+networks:
+  dwh-tier:
+    external:
+      name: dwh-network

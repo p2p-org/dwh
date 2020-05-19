@@ -1,0 +1,123 @@
+version: '3.6'
+services:
+  postgres_ibc0:
+    image: postgres:11-alpine
+    container_name: postgres_ibc0
+    restart: unless-stopped
+    volumes:
+      - db-data0:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=dgaming
+      - POSTGRES_PASSWORD=dgaming
+      - POSTGRES_DB=marketplace
+    networks:
+      - dwh-tier
+
+  postgres_ibc1:
+    image: postgres:11-alpine
+    container_name: postgres_ibc1
+    restart: unless-stopped
+    volumes:
+      - db-data1:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
+    environment:
+      - POSTGRES_USER=dgaming
+      - POSTGRES_PASSWORD=dgaming
+      - POSTGRES_DB=marketplace
+    networks:
+      - dwh-tier
+
+  rabbitmq:
+    image: rabbitmq:latest
+    container_name: dwh_rabbit
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - dwh-tier
+
+  graphql_ibc0:
+    container_name: graphql_ibc0
+    image: hasura/graphql-engine:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres_ibc0
+    environment:
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres_ibc0:5432/marketplace
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+    networks:
+      - dwh-tier
+
+  graphql_ibc1:
+    container_name: graphql_ibc1
+    image: hasura/graphql-engine:latest
+    restart: unless-stopped
+    ports:
+      - 8090:8080
+    depends_on:
+      - postgres_ibc1
+    environment:
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres_ibc1:5432/marketplace
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+    networks:
+      - dwh-tier
+
+#  graphql-public:
+#    container_name: dwh_graphql_public
+#    image: hasura/graphql-engine:latest
+#    restart: unless-stopped
+#    expose:
+#      - 8080
+#    depends_on:
+#      - "postgres"
+#    environment:
+#      - HASURA_GRAPHQL_DATABASE_URL=postgres://dgaming:dgaming@postgres:5432/marketplace
+#      - HASURA_GRAPHQL_ENABLE_CONSOLE=true
+##      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup,http-log,webhook-log,websocket-log,query-log
+#      ## uncomment next line to set an admin secret
+#      - HASURA_GRAPHQL_ADMIN_SECRET=${GRAPHQL_ADMIN_SECRET}
+#      - VIRTUAL_PORT=8080
+#      - VIRTUAL_HOST=demo-gql.openmarket.one
+#      - LETSENCRYPT_HOST=demo-gql.openmarket.one
+#    networks:
+#      - dwh-tier
+#
+
+  indexer_ibc0:
+    image: "dwh_indexer:latest"
+    depends_on:
+      - postgres_ibc0
+      - rabbitmq
+    volumes:
+      - ~/data/dwh0:/root
+    restart: unless-stopped
+    networks:
+      - dwh-tier
+
+  indexer_ibc1:
+    image: "dwh_indexer:latest"
+    depends_on:
+      - postgres_ibc1
+      - rabbitmq
+    volumes:
+      - ~/data/dwh1:/root
+    restart: unless-stopped
+    networks:
+      - dwh-tier
+
+volumes:
+  db-data0:
+  db-data1:
+  idx-data0:
+  idx-data1:
+
+networks:
+  dwh-tier:
+    external:
+      name: dwh-network

@@ -8,16 +8,13 @@ ENV DWHPATH /go/src/github.com/p2p-org/dwh/
 #RUN mkdir -p $DWHPATH
 WORKDIR $DWHPATH
 
-ENV GO111MODULE=off
+ENV GO111MODULE=on
 
 COPY . $DWHPATH
-COPY ./config.toml /root/config.toml
 
 ARG APPNAME
 ENV APP=$APPNAME
 RUN go install $DWHPATH/cmd/$APP
-
-
 
 EXPOSE 11535
 

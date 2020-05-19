@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/corestario/cosmos-utils/client v0.0.0-20200518174750-e20fa2abb463
-	github.com/corestario/marketplace v0.0.0-20191227095102-07bb99b5023b // indirect
+	github.com/p2p-org/marketplace v0.0.0-20191227095102-07bb99b5023b // indirect
 	github.com/cosmos/cosmos-sdk v0.38.0
 	github.com/cosmos/modules/incubator/nft v0.0.0-20200409061055-9d5a3d97f9b1
 	github.com/gorilla/mux v1.7.4
@@ -36,6 +36,6 @@ require (
 
 replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.34.4-0.20200507135526-b3cada10017d
 
-replace github.com/p2p-org/marketplace => ./../marketplace
+replace github.com/p2p-org/marketplace => github.com/p2p-org/marketplace v0.0.0-20200518191713-200e13371b9c
 
-replace github.com/cosmos/modules/incubator/nft => ./../modules/incubator/nft
+replace github.com/cosmos/modules/incubator/nft => github.com/corestario/modules/incubator/nft v0.0.0-20200511154810-3d3a47a221a6
