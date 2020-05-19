@@ -106,7 +106,7 @@ services:
       - rabbitmq_ibc0
     volumes:
       - ~/data/dwh0:/root
-      - ~/data/dwh/state:/go/src/github.com/p2p-org/dwh/indexer.state
+      - idx-data0
     restart: unless-stopped
     networks:
       - dwh-tier
@@ -118,7 +118,7 @@ services:
       - rabbitmq_ibc1
     volumes:
       - ~/data/dwh1:/root
-      - ~/data/dwh1/state:/go/src/github.com/p2p-org/dwh/indexer.state
+      - idx-data1
     restart: unless-stopped
     networks:
       - dwh-tier
