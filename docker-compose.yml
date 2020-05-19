@@ -8,9 +8,6 @@ services:
     restart: unless-stopped
     networks:
       - dwh-tier
-      -
-volumes:
-  idx-data:
 
 networks:
   dwh-tier:

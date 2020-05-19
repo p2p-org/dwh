@@ -21,8 +21,8 @@ services:
     restart: unless-stopped
     volumes:
       - db-data1:/var/lib/postgresql/data
-    ports:
-      - 5433:5432
+#    ports:
+#      - 5432:5432
     environment:
       - POSTGRES_USER=dgaming
       - POSTGRES_PASSWORD=dgaming
@@ -30,13 +30,23 @@ services:
     networks:
       - dwh-tier
 
-  rabbitmq:
+  rabbitmq_ibc0:
     image: rabbitmq:latest
-    container_name: dwh_rabbit
+    container_name: rabbitmq_ibc0
     restart: unless-stopped
     ports:
       - 5672:5672
       - 15672:15672
+    networks:
+      - dwh-tier
+
+  rabbitmq_ibc1:
+    image: rabbitmq:latest
+    container_name: rabbitmq_ibc1
+    restart: unless-stopped
+#    ports:
+#      - 5672:5672
+#      - 15672:15672
     networks:
       - dwh-tier
 
@@ -93,9 +103,10 @@ services:
     image: "dwh_indexer:latest"
     depends_on:
       - postgres_ibc0
-      - rabbitmq
+      - rabbitmq_ibc0
     volumes:
       - ~/data/dwh0:/root
+      - ~/data/dwh/state:/go/src/github.com/p2p-org/dwh/indexer.state
     restart: unless-stopped
     networks:
       - dwh-tier
@@ -104,9 +115,10 @@ services:
     image: "dwh_indexer:latest"
     depends_on:
       - postgres_ibc1
-      - rabbitmq
+      - rabbitmq_ibc1
     volumes:
       - ~/data/dwh1:/root
+      - ~/data/dwh1/state:/go/src/github.com/p2p-org/dwh/indexer.state
     restart: unless-stopped
     networks:
       - dwh-tier

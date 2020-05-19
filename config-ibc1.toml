@@ -7,11 +7,11 @@
 
 [rabbitmq]
 	queue_scheme = "amqp"
-	queue_addr = "rabbitmq"
+	queue_addr = "rabbitmq_ibc1"
 	queue_port = 5672
 	queue_username = "guest"
 	queue_password = "guest"
-	exchange_name = "dwh_direct_exchange_ibc1"
+	exchange_name = "dwh_direct_exchange"
 
 [img_resizer_service]
 	img_queue_name = "dwh_img_tasks"
