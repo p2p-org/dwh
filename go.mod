@@ -37,5 +37,4 @@ require (
 replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.34.4-0.20200507135526-b3cada10017d
 
 replace github.com/p2p-org/marketplace => ./../marketplace
-
 replace github.com/cosmos/modules/incubator/nft => ./../modules/incubator/nft
