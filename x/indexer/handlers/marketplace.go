@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/ibc"
 	stdLog "log"
 	"reflect"
 	"time"
@@ -13,12 +14,14 @@ import (
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	transferIBC "github.com/cosmos/cosmos-sdk/x/ibc/20-transfer/types"
 	"github.com/cosmos/modules/incubator/nft"
 	"github.com/jinzhu/gorm"
 	common "github.com/p2p-org/dwh/x/common"
 	app "github.com/p2p-org/marketplace"
 	appTypes "github.com/p2p-org/marketplace/x/marketplace/types"
 	mptypes "github.com/p2p-org/marketplace/x/marketplace/types"
+	nftIBC "github.com/p2p-org/marketplace/x/nftIBC/types"
 	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
 	abciTypes "github.com/tendermint/tendermint/abci/types"
@@ -435,7 +438,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 }
 
 func (m *MarketplaceHandler) RouterKeys() []string {
-	return []string{mptypes.ModuleName, nft.ModuleName}
+	return []string{mptypes.ModuleName, nft.ModuleName, ibc.ModuleName, nftIBC.ModuleName, transferIBC.ModuleName}
 }
 
 func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
