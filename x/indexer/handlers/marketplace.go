@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/ibc"
 	stdLog "log"
 	"reflect"
@@ -14,6 +15,7 @@ import (
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	channelIBC "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/types"
 	transferIBC "github.com/cosmos/cosmos-sdk/x/ibc/20-transfer/types"
 	"github.com/cosmos/modules/incubator/nft"
 	"github.com/jinzhu/gorm"
@@ -109,6 +111,84 @@ func (m *MarketplaceHandler) increaseCounter(labels ...string) {
 	counter.Inc()
 }
 
+func (m *MarketplaceHandler) handleIBCPacket(db *gorm.DB, packet channelIBC.MsgPacket) error {
+	switch packet.Packet.GetDestPort() {
+	case nftIBC.PortID:
+		var (
+			data nftIBC.NFTPacketData
+			nft  common.NFT
+		)
+		if err := nftIBC.ModuleCdc.UnmarshalJSON(packet.Packet.GetData(), &data); err != nil {
+			return fmt.Errorf("failed to decode packet data: %v", err)
+		}
+		if _, err := m.findOrCreateUser(db, data.Owner); err != nil {
+			return err
+		}
+		if _, err := m.findOrCreateUser(db, data.Receiver); err != nil {
+			return err
+		}
+
+		db.Where(&common.NFT{Denom: nft.Denom, TokenID: nft.TokenID}).
+			Assign(&common.NFT{OwnerAddress: data.Receiver.String()}).FirstOrCreate(&nft)
+		if db.Error != nil {
+			fmt.Errorf("failed to transfer through IBC NFT: %v", db.Error)
+		}
+		if err := m.uriSender.Publish(nft.TokenURI, data.Owner.String(), nft.TokenID, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
+	case transferIBC.PortID:
+		var (
+			data transferIBC.FungibleTokenPacketData
+		)
+		if err := transferIBC.ModuleCdc.UnmarshalJSON(packet.Packet.GetData(), &data); err != nil {
+			return fmt.Errorf("failed to decode packet data: %v", err)
+		}
+
+		sender, err := sdk.AccAddressFromBech32(data.Sender)
+		if err != nil {
+			return err
+		}
+		receiver, err := sdk.AccAddressFromBech32(data.Receiver)
+		if err != nil {
+			return err
+		}
+
+		tx := db.Begin()
+		if tx.Error != nil {
+			return tx.Error
+		}
+		defer tx.RollbackUnlessCommitted()
+
+		if _, err := m.findOrCreateUser(tx, sender); err != nil {
+			return err
+		}
+		if _, err := m.findOrCreateUser(tx, receiver); err != nil {
+			return err
+		}
+		for _, coin := range data.Amount {
+			var ft common.FungibleToken
+
+			tx.Where(&common.FungibleToken{
+				Denom: coin.Denom,
+			}).Assign(&common.FungibleToken{OwnerAddress: data.Receiver, Denom: coin.Denom, EmissionAmount: coin.Amount.Int64()}).
+				FirstOrCreate(&ft)
+			if tx.Error != nil {
+				return fmt.Errorf("failed to transfer through IBC fungible token: %v", tx.Error)
+			}
+			tx.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
+				SenderAddress:    data.Sender,
+				RecipientAddress: data.Receiver,
+				Amount:           coin.Amount.Int64(),
+			})
+			if tx.Error != nil {
+				return fmt.Errorf("failed to transfer through IBC fungible token: %v", tx.Error)
+			}
+		}
+		return tx.Commit().Error
+	}
+	return nil
+}
+
 func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciTypes.Event) error {
 	m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueCommon)
 	log.Infof("got message of type %s: %+v", msg.Type(), msg)
@@ -124,6 +204,10 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 	}
 
 	switch value := msg.(type) {
+	case channelIBC.MsgPacket:
+		if err = m.handleIBCPacket(db, value); err != nil {
+			return err
+		}
 	case nft.MsgMintNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgMintNFT)
 		db = db.Create(
@@ -432,13 +516,97 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 			return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
 		}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferFungibleTokens)
+	case transferIBC.MsgTransfer:
+		var (
+			err error
+		)
+		if _, err = m.findOrCreateUser(db, value.Sender); err != nil {
+			return err
+		}
+		receiver, err := sdk.AccAddressFromBech32(value.Receiver)
+		if err != nil {
+			return err
+		}
+		if _, err = m.findOrCreateUser(db, receiver); err != nil {
+			return err
+		}
+
+		tx := db.Begin()
+		if tx.Error != nil {
+			return err
+		}
+		defer tx.RollbackUnlessCommitted()
+
+		for _, coin := range value.Amount {
+			var ft common.FungibleToken
+			tx.Where("denom = ?", coin.Denom).First(&ft)
+			if ft.ID == 0 {
+				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+			}
+			tx.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
+				SenderAddress:    value.Sender.String(),
+				RecipientAddress: value.Receiver,
+				Amount:           coin.Amount.Int64(),
+			})
+			if tx.Error != nil {
+				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+			}
+		}
+		return tx.Commit().Error
+	case nftIBC.MsgTransferNFT:
+		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
+		db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).UpdateColumns(map[string]interface{}{
+			"OwnerAddress": value.Receiver.String(),
+		})
+		if db.Error != nil {
+			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
+		}
+		tokenInfo, err := m.queryNFT(value.Id)
+		if err != nil {
+			return fmt.Errorf("failed to query nft #%s (MsgTransferNFT): %v", value.Id, err)
+		}
+		if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Sender.String(), value.Id, common.TransferTriggeredPriority); err != nil {
+			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		}
+		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
+	case bank.MsgSend:
+		if _, err = m.findOrCreateUser(db, value.FromAddress); err != nil {
+			return err
+		}
+		if _, err = m.findOrCreateUser(db, value.ToAddress); err != nil {
+			return err
+		}
+
+		tx := db.Begin()
+		if tx.Error != nil {
+			return err
+		}
+		defer tx.RollbackUnlessCommitted()
+
+		for _, coin := range value.Amount {
+			var ft common.FungibleToken
+
+			tx.Where("denom = ?", coin.Denom).First(&ft)
+			if ft.ID == 0 {
+				return fmt.Errorf("failed to transfer fungible token: %v", tx.Error)
+			}
+			tx.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
+				SenderAddress:    value.FromAddress.String(),
+				RecipientAddress: value.ToAddress.String(),
+				Amount:           coin.Amount.Int64(),
+			})
+			if tx.Error != nil {
+				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+			}
+		}
+		return tx.Commit().Error
 	}
 	m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueCommon)
 	return nil
 }
 
 func (m *MarketplaceHandler) RouterKeys() []string {
-	return []string{mptypes.ModuleName, nft.ModuleName, ibc.ModuleName, nftIBC.ModuleName, transferIBC.ModuleName}
+	return []string{mptypes.ModuleName, nft.ModuleName, ibc.ModuleName, nftIBC.ModuleName, transferIBC.ModuleName, bank.ModuleName}
 }
 
 func (m *MarketplaceHandler) Setup(db *gorm.DB) (*gorm.DB, error) {
