@@ -581,19 +581,6 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 	case nftIBC.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
 		db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).Delete(common.NFT{})
-		//db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).UpdateColumns(map[string]interface{}{
-		//	"OwnerAddress": value.Receiver.String(),
-		//})
-		//if db.Error != nil {
-		//	return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
-		//}
-		//tokenInfo, err := m.queryNFT(value.Id)
-		//if err != nil {
-		//	return fmt.Errorf("failed to query nft #%s (MsgTransferNFT): %v", value.Id, err)
-		//}
-		//if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Sender.String(), value.Id, common.TransferTriggeredPriority); err != nil {
-		//	return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
-		//}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
 	case bank.MsgSend:
 		if _, err = m.findOrCreateUser(db, value.FromAddress); err != nil {
