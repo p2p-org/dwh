@@ -73,9 +73,8 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 			0,
 			nil,
 		)
-		if db.Create(&user).Error != nil {
-			//return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, db.Error)
-			return nil, nil
+		if db.Where(&common.User{Address: accAddress.String()}).Assign(&user).FirstOrCreate(&user).Error != nil {
+			return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, db.Error)
 		}
 		return nil, nil
 	}
@@ -141,8 +140,13 @@ func (m *MarketplaceHandler) handleIBCPacket(db *gorm.DB, packet channelIBC.MsgP
 			return err
 		}
 
-		db.Where(&common.NFT{Denom: nft.Denom, TokenID: nft.TokenID}).
-			Assign(&common.NFT{OwnerAddress: data.Receiver.String()}).FirstOrCreate(&nft)
+		db.Where(&common.NFT{Denom: data.Denom, TokenID: data.Id}).
+			Assign(&common.NFT{
+				OwnerAddress: data.Receiver.String(),
+				Denom:        data.Denom,
+				TokenID:      data.Id,
+				TokenURI:     data.TokenURI,
+			}).FirstOrCreate(&nft)
 		if db.Error != nil {
 			fmt.Errorf("failed to transfer through IBC NFT: %v", db.Error)
 		}
@@ -212,7 +216,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 	}
 	for _, addr := range msgAddrs {
 		if _, err := m.findOrCreateUser(db, addr); err != nil {
-			return fmt.Errorf("failed to preemptively create users for message: %v", err)
+			log.Errorf("failed to preemptively create users for message: %v", err)
 		}
 	}
 
@@ -576,19 +580,20 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 		return tx.Commit().Error
 	case nftIBC.MsgTransferNFT:
 		m.increaseCounter(common.PrometheusValueReceived, common.PrometheusValueMsgTransferNFT)
-		db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).UpdateColumns(map[string]interface{}{
-			"OwnerAddress": value.Receiver.String(),
-		})
-		if db.Error != nil {
-			return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
-		}
-		tokenInfo, err := m.queryNFT(value.Id)
-		if err != nil {
-			return fmt.Errorf("failed to query nft #%s (MsgTransferNFT): %v", value.Id, err)
-		}
-		if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Sender.String(), value.Id, common.TransferTriggeredPriority); err != nil {
-			return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
-		}
+		db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).Delete(common.NFT{})
+		//db = db.Model(&common.NFT{}).Where("token_id = ?", value.Id).UpdateColumns(map[string]interface{}{
+		//	"OwnerAddress": value.Receiver.String(),
+		//})
+		//if db.Error != nil {
+		//	return fmt.Errorf("failed to update nft (MsgTransferNFT): %v", db.Error)
+		//}
+		//tokenInfo, err := m.queryNFT(value.Id)
+		//if err != nil {
+		//	return fmt.Errorf("failed to query nft #%s (MsgTransferNFT): %v", value.Id, err)
+		//}
+		//if err := m.uriSender.Publish(tokenInfo.TokenURI, value.Sender.String(), value.Id, common.TransferTriggeredPriority); err != nil {
+		//	return fmt.Errorf("failed to send message to RabbitMQ: %v", err)
+		//}
 		m.increaseCounter(common.PrometheusValueAccepted, common.PrometheusValueMsgTransferNFT)
 	case bank.MsgSend:
 		if _, err = m.findOrCreateUser(db, value.FromAddress); err != nil {
