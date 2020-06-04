@@ -146,12 +146,12 @@ type Tx struct {
 
 func NewTx(tx *coreTypes.ResultTx) *Tx {
 	return &Tx{
-		Hash:      tx.Hash.String(),
-		Height:    tx.Height,
-		Index:     tx.Index,
-		Code:      tx.TxResult.Code,
-		Data:      tx.TxResult.Data,
-		Log:       postgres.Jsonb{json.RawMessage(tx.TxResult.Log)},
+		Hash:   tx.Hash.String(),
+		Height: tx.Height,
+		Index:  tx.Index,
+		Code:   tx.TxResult.Code,
+		Data:   tx.TxResult.Data,
+		//Log:       postgres.Jsonb{RawMessage: json.RawMessage(tx.TxResult.Log)},
 		Info:      tx.TxResult.Info,
 		GasWanted: tx.TxResult.GasWanted,
 		GasUsed:   tx.TxResult.GasUsed,

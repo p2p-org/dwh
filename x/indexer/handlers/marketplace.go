@@ -64,7 +64,20 @@ func (m *MarketplaceHandler) findOrCreateUser(db *gorm.DB, accAddress sdk.AccAdd
 	user := &common.User{}
 	acc, err := m.getAccount(accAddress)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
+		//log.Errorf("failed to find owner with addr %s: %v", accAddress.String(), err)
+		user = common.NewUser(
+			"",
+			accAddress,
+			sdk.Coins{},
+			0,
+			0,
+			nil,
+		)
+		if db.Create(&user).Error != nil {
+			//return nil, fmt.Errorf("failed to add user for address %s: %v", accAddress, db.Error)
+			return nil, nil
+		}
+		return nil, nil
 	}
 	row := db.Table("users").Where("address = ?", accAddress.String()).Row()
 	err = row.Scan(
@@ -539,9 +552,17 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 
 		for _, coin := range value.Amount {
 			var ft common.FungibleToken
+
+			tx.Where(&common.FungibleToken{
+				Denom: coin.Denom,
+			}).Assign(&common.FungibleToken{OwnerAddress: value.Sender.String(), Denom: coin.Denom, EmissionAmount: coin.Amount.Int64()}).
+				FirstOrCreate(&ft)
+			if tx.Error != nil {
+				return fmt.Errorf("failed to transfer through IBC fungible token: %v", tx.Error)
+			}
 			tx.Where("denom = ?", coin.Denom).First(&ft)
 			if ft.ID == 0 {
-				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+				return fmt.Errorf("failed to transfer fungible token through IBC: %v", db.Error)
 			}
 			tx.Model(&ft).Association("FungibleTokenTransfers").Append(common.FungibleTokenTransfer{
 				SenderAddress:    value.Sender.String(),
@@ -549,7 +570,7 @@ func (m *MarketplaceHandler) Handle(db *gorm.DB, msg sdk.Msg, events ...abciType
 				Amount:           coin.Amount.Int64(),
 			})
 			if tx.Error != nil {
-				return fmt.Errorf("failed to transfer fungible token: %v", db.Error)
+				return fmt.Errorf("failed to transfer fungible token through IBC: %v", db.Error)
 			}
 		}
 		return tx.Commit().Error

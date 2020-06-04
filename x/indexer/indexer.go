@@ -211,7 +211,7 @@ func (m *Indexer) processTxs(rpcClient client.Client, txs types.Txs) error {
 		var dbTx = common.NewTx(txRes)
 		m.db = m.db.Create(dbTx).Scan(dbTx)
 		if m.db.Error != nil {
-			log.Errorf("failed to store transaction: %v", err)
+			log.Errorf("failed to store transaction: %v", m.db.Error)
 			continue
 		}
 
